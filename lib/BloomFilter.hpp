@@ -50,6 +50,15 @@ public:
             m_filter[i]=0;
     }
 
+    void insert(const uint64_t hVal) {
+        for (unsigned i = 0; i < m_hashNum; i++) {
+            uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
+            mhVal ^= mhVal >> multiShift;
+            size_t hLoc = mhVal % m_size;
+            __sync_or_and_fetch(&m_filter[hLoc / 8], (1 << (7 - hLoc % 8)));
+        }
+    }
+
     void insert(const char* kmer) {
         uint64_t hVal = NTC64(kmer, m_kmerSize);
         for (unsigned i = 0; i < m_hashNum; i++) {
@@ -82,6 +91,17 @@ public:
             size_t hLoc = mhVal % m_size;
             __sync_or_and_fetch(&m_filter[hLoc / 8], (1 << (7 - hLoc % 8)));
         }
+    }
+
+	bool contains(const uint64_t hVal) const {
+        for (unsigned i = 0; i < m_hashNum; i++) {
+            uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
+            mhVal ^= mhVal >> multiShift;
+            size_t hLoc = mhVal % m_size;
+            if ((m_filter[hLoc / 8] & (1 << (7 - hLoc % 8))) == 0)
+                return false;
+        }
+        return true;
     }
 
     bool contains(const char* kmer) const {

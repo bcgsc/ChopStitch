@@ -41,8 +41,8 @@ static const char USAGE_MESSAGE[] =
 using namespace std;
 
 namespace opt {
-unsigned nThrd=1;
-unsigned ibits=8;
+unsigned nThrd=64;
+unsigned ibits = 8;
 unsigned nhash=1;
 unsigned kmLen=50;
 }
@@ -68,74 +68,74 @@ unsigned getftype(std::ifstream &in) {
         return 1;
     }
     if(hseq[0]=='@') {
-        return 0;
+		return 0;
     }
     return 2;
 }
 
 inline void seqLoad(BloomFilter &dbFilter, BloomFilter &sbFilter, const string &seq) {
-    if (seq.size() < opt::kmLen) return;
-    uint64_t hVal, fhVal=0, rhVal=0;
-    for(unsigned seqIndex=0; seqIndex<seq.length()-opt::kmLen+1;) {
-        bool rollFlag=(seqIndex==0)?false:true;
-        if(seedTab[seq[seqIndex+opt::kmLen-1]]==seedN) {
-            seqIndex+=opt::kmLen;
-            rollFlag=false;
-        }
-        if(!rollFlag) {
-            bool hGood=false;
-            while(!hGood && seqIndex<seq.length()-opt::kmLen+1) {
-                string kmer = seq.substr(seqIndex, opt::kmLen);
-                unsigned locN=0;
-                hGood = NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal, hVal, locN);
-                seqIndex+=locN+1;
-            }
-            if(hGood) {
-                if(!dbFilter.contains(hVal))
-                    dbFilter.insert(hVal);
-                else
-                    sbFilter.insert(hVal);
-            }
-        }
-        else {
-            hVal=NTPC64(fhVal, rhVal, seq[seqIndex-1], seq[seqIndex-1+opt::kmLen], opt::kmLen);
-            seqIndex++;
-            if(!dbFilter.contains(hVal))
-                dbFilter.insert(hVal);
-            else
-                sbFilter.insert(hVal);
-        }
-    }
+	if (seq.size() < opt::kmLen) return;
+	uint64_t hVal, fhVal=0, rhVal=0;
+	for(unsigned seqIndex=0;seqIndex<seq.length()-opt::kmLen+1;) {				
+		bool rollFlag=(seqIndex==0)?false:true;
+		if(seedTab[seq[seqIndex+opt::kmLen-1]]==seedN) {                    
+			seqIndex+=opt::kmLen;
+			rollFlag=false;
+		}
+		if(!rollFlag) {
+			bool hGood=false;                    
+			while(!hGood && seqIndex<seq.length()-opt::kmLen+1) {
+				string kmer = seq.substr(seqIndex, opt::kmLen);
+				unsigned locN=0;
+				hGood = NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal, hVal, locN);
+				seqIndex+=locN+1;
+			}
+			if(hGood) {
+				if(!dbFilter.contains(hVal))
+					dbFilter.insert(hVal);
+				else
+					sbFilter.insert(hVal);
+			}
+		}
+		else { 
+			hVal=NTPC64(fhVal, rhVal, seq[seqIndex-1], seq[seqIndex-1+opt::kmLen], opt::kmLen);
+			seqIndex++;
+			if(!dbFilter.contains(hVal))
+				dbFilter.insert(hVal);
+			else
+				sbFilter.insert(hVal);
+		}
+	}
 }
 
 void loadBFfq(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
     bool good = true;
 
-    //good = getline(in, seq);
-    //good = getline(in, hseq);
-    //good = getline(in, hseq);
-    //if(good) seqLoad(dbFilter, sbFilter, seq);
+	//good = getline(in, seq);
+	//good = getline(in, hseq);
+	//good = getline(in, hseq);
+	//if(good) seqLoad(dbFilter, sbFilter, seq);      		
     #pragma omp parallel
-    for(string seq, hseq; good;) {
-        #pragma omp critical(in)
-        {
-            good = getline(in, hseq);
-            good = getline(in, seq);
-            good = getline(in, hseq);
-            good = getline(in, hseq);
-        }
-        if(good) seqLoad(dbFilter, sbFilter, seq);
+    for(string seq, hseq;good;) {
+		#pragma omp critical(in)
+		{
+			good = getline(in, hseq);
+			good = getline(in, seq);
+			good = getline(in, hseq);
+			good = getline(in, hseq);
+		}
+		if(good) seqLoad(dbFilter, sbFilter, seq);			
     }
 }
 
-/*void loadBFfa(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
+/*void loadBFfa(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {		
 	bool good = true;
 	#pragma omp parallel
-    for(string seq, hseq; good;) {
+    for(string seq, hseq; good;) {		
 		string line;
 		#pragma omp critical(in)
 		{
-			good = getline(in, seq);
+			good = getline(in, seq);		
 			while(good&&seq[0]!='>') {
 				line+=seq;
 				good = getline(in, seq);
@@ -146,8 +146,8 @@ void loadBFfq(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
 }*/
 
 int main(int argc, char** argv) {
-    double sTime = omp_get_wtime();
-
+	double sTime = omp_get_wtime();
+	
     bool die = false;
     for (int c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
         std::istringstream arg(optarg != NULL ? optarg : "");
@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
             break;
         case 'h':
             arg >> opt::nhash;
-            break;
+            break;          
         case OPT_HELP:
             std::cerr << USAGE_MESSAGE;
             exit(EXIT_SUCCESS);
@@ -206,27 +206,27 @@ int main(int argc, char** argv) {
 #endif
 
 
-    size_t dbfSize=22000000000,sbfSize=4000000000;
-    //getCardinality(dbfSize,sbfSize);
-    BloomFilter dbFilter(dbfSize*opt::ibits, opt::nhash, opt::kmLen);
-    BloomFilter sbFilter(sbfSize*opt::ibits, opt::nhash, opt::kmLen);
+	size_t dbfSize=3148354000,sbfSize=2258862151;
+	//getCardinality(dbfSize,sbfSize);
+	BloomFilter dbFilter(dbfSize*opt::ibits, opt::nhash, opt::kmLen);
+	BloomFilter sbFilter(sbfSize*opt::ibits, opt::nhash, opt::kmLen);
+	
+	for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
+            std::ifstream in(inFiles[file_i].c_str());            
+            //unsigned ftype = getftype(in);          
+            //if(ftype==0)
+                loadBFfq(dbFilter, sbFilter, in);
+           // else if (ftype==1)
+            //    loadBFfa(dbFilter, sbFilter, in);
+            //else {
+			//	cerr << "Error in file format: " << inFiles[file_i];
+			//	exit(EXIT_FAILURE);
+			//} 				
+            in.close();
+	}	
+	sbFilter.storeFilter("sfilter.bf");
+	
 
-    for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
-        std::ifstream in(inFiles[file_i].c_str());
-        //unsigned ftype = getftype(in);
-        //if(ftype==0)
-        loadBFfq(dbFilter, sbFilter, in);
-        // else if (ftype==1)
-        //    loadBFfa(dbFilter, sbFilter, in);
-        //else {
-        //	cerr << "Error in file format: " << inFiles[file_i];
-        //	exit(EXIT_FAILURE);
-        //}
-        in.close();
-    }
-    sbFilter.storeFilter("sfilter.bf");
-
-
-    cerr << "time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
+	cerr << "time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
     return 0;
 }
