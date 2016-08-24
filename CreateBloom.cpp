@@ -207,6 +207,7 @@ int main(int argc, char** argv) {
 
 
     size_t dbfSize=22000000000,sbfSize=4000000000;
+    //size_t dbfSize=3176131308,sbfSize=2258862151;
     //getCardinality(dbfSize,sbfSize);
     BloomFilter dbFilter(dbfSize*opt::ibits, opt::nhash, opt::kmLen);
     BloomFilter sbFilter(sbfSize*opt::ibits, opt::nhash, opt::kmLen);
@@ -225,8 +226,11 @@ int main(int argc, char** argv) {
         in.close();
     }
     sbFilter.storeFilter("sfilter.bf");
-
-
+	cout << "h= " << opt::nhash << "\n";
+	cout << "k= " << opt::kmLen << "\n";
+	cout << "b= " << opt::ibits << "\n";
+	cout << "FPR= " << setprecision(4) << fixed << pow(1.0*sbFilter.getPop()/sbfSize/opt::ibits,opt::nhash) << "\n";
+	
     cerr << "time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
     return 0;
 }
