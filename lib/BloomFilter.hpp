@@ -142,7 +142,11 @@ public:
                 return false;
         }
         return true;
-    }    
+    } 
+    
+    bool containSNP(uint64_t& fhVal, uint64_t& rhVal, const char charOut, const char charIn) {
+		
+	}   
     
     void storeFilter(const char * fPath) const {
         ofstream myFile(fPath, ios::out | ios::binary);
