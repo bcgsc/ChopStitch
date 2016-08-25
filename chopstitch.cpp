@@ -1,3 +1,25 @@
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <cstdlib>
+#include <getopt.h>
+#include <cassert>
+#include <cmath>
+//#include "config.h"
+#include <utility>
+#include <algorithm>
+#include <vector>
+#include "lib/pstream.h"
+#include <cassert>
+#include <getopt.h>
+#include <iostream>
+#include <cstring>
+#include <algorithm> 
+
+#include "lib/BloomFilter.hpp"
 
 
 #define PROGRAM "Chopstitch"
@@ -14,23 +36,29 @@ static const char USAGE_MESSAGE[] =
     "\n"
     " Options:\n"
     "\n"
-    "  -k, --kmer=N	the length of kmer [50]\n"
-    "  -l, --leniency=N Calculated as ceil(FPR*) [10]\n"   
+    "  -k, --kmer=N	              the length of kmer [50]\n"
     "  -i, --input-bloom=FILE     load bloom filter from FILE\n"
-    "      --help	display this help and exit\n"
-    "      --version	output version information and exit\n"
+    "  -l, --leniency=N           Calculated as ceil(FPR*) [10]\n"   
+    "  -X, --internalexons        output internal confident exons in a fasta file \n"
+    "  -v, --verbose              display verbose output\n"
+    "      --help	              display this help and exit\n"
+    "      --version	          output version information and exit\n"
     "\n"
     "Report bugs to hmohamadi@bcgsc.ca; hkhan@bcgsc.ca\n";
 
 using namespace std;
 
 namespace opt {
-unsigned leniency=10;
+unsigned leniency=0;
 unsigned k=50;
-unsigned inputBloomPath='';
+unsigned nhash=1;
+static string inputBloomPath;
+unsigned ibits=8;   
+bool internalexons = false;
+unsigned verbose=0;
 }
 
-static const char shortopts[] = "k:l:i";
+static const char shortopts[] = "k:l:i:h:Xv";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
@@ -38,8 +66,11 @@ static const struct option longopts[] = {
     { "kmer",	required_argument, NULL, 'k' },
     { "leniency",	required_argument, NULL, 'l' },
     { "input-bloom",	required_argument, NULL, 'i' },
+    { "hash",	required_argument, NULL, 'h' },
     { "help",	no_argument, NULL, OPT_HELP },
     { "version",	no_argument, NULL, OPT_VERSION },
+    { "internalexons",    no_argument, NULL, 'X' },
+	{ "verbose",          no_argument, NULL, 'v' },
     { NULL, 0, NULL, 0 }
 };
 
@@ -48,25 +79,21 @@ bool getSeq(std::ifstream &uFile, std::string &line) {
     bool good=false;
     std::string hline;
     line.clear();
-    if(opt::fastq) {
-        good=getline(uFile, hline);
-        good=getline(uFile, line);
-        good=getline(uFile, hline);
-        good=getline(uFile, hline);
-    }
-    else {
-        do {
+    do {
             good=getline(uFile, hline);
             if(hline[0]=='>'&&!line.empty()) break;// !line.empty() for the first rec
             if(hline[0]!='>')line+=hline;
         } while(good);
-        if(!good&&!line.empty())
+    
+    if(!good&&!line.empty())
             good=true;
-    }
+
     return good;
 }
 
 
+
+/*
 
 void findJunctions(BloomFilter& bloom, int optind, char** argv)
 
@@ -74,9 +101,7 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
    FastaReader reader(argv[optind], FastaReader::FOLD_CASE);
 
    BloomFilter& bf = bloom;
-   
-	
-	//DBGBloom<BloomFilter> g(*bloom);
+ 
 
    std::ofstream bfile("boundaries.csv", std::ios::app);
    std::ofstream efile("exons.fa", std::ios::app);
@@ -100,19 +125,20 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
               snp_chance_G=0,
               snp_chance_C=0,
               snp_nochance=0;
-
-     double FDR = 0.02, 
-            leniency = ceil(n*FDR*(opt::k));
-
-	 int first_match=0, 
-         last_match_pos=0;
-
-     std::string current_sec = rec.seq;
-
-     //cout << ">" << rec.id << std::endl;
-     vector<int> arr;
-     vector<int> carr;     
-
+	 
+	 int first_match=0, last_match_pos=0,
+	     big1=0, small1=0, big2=0;
+	 std::string current_sec = rec.seq;
+	 vector<int> arr;
+	 vector<int> carr;  
+	     
+     double FDR = 0.02;
+     
+     if(opt::leniency==0)
+     {
+    	 opt::leniency = ceil(n*FDR*(opt::k));
+     }
+ 
      int str_length = current_sec.length();
 
      for (unsigned int x=0; x < (str_length-((opt::k)-1)-2); x++) 
@@ -130,26 +156,22 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
               	
 		        if((!bf[it]) && (myflag==0) && (first_match==1))
 		           {
-		               myflag=1;
-		               start = pos;
+		             myflag=1;
+		             start = pos;
                      unmatch_count=1;
-                     snp_chance_A=0, snp_chance_C=0, snp_chance_G=0, snp_chance_T=0, snp_nochance=0;
-                     
+                     snp_chance_A=0, snp_chance_C=0, snp_chance_G=0, snp_chance_T=0, snp_nochance=0;                     
 		           }
+		        
 		         if((!bf[it]) && (myflag==1))
 		            {
-                    if(unmatch_count<=leniency)
+                    if(unmatch_count<=opt::leniency)
                         {  
                          
-                         string it_a = (it.str()).replace(((it.str()).length())-unmatch_count, 1, "A");
- 
-                         string it_t = (it.str()).replace(((it.str()).length())-unmatch_count, 1, "T");
-                        
-                         string it_g = (it.str()).replace(((it.str()).length())-unmatch_count, 1, "G");
-                        
+                         string it_a = (it.str()).replace(((it.str()).length())-unmatch_count, 1, "A"); 
+                         string it_t = (it.str()).replace(((it.str()).length())-unmatch_count, 1, "T");                        
+                         string it_g = (it.str()).replace(((it.str()).length())-unmatch_count, 1, "G");                        
                          string it_c = (it.str()).replace(((it.str()).length())-unmatch_count, 1, "C");
                         
-
                          if(bf[Kmer(it_a)]){snp_chance_A++;unmatch_count+=1;
                                                  goto SNP_found;}
 
@@ -166,27 +188,27 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
                          unmatch_count+=1;
                        }
                       
-                      if(unmatch_count == leniency+1)
+                      if(unmatch_count == opt::leniency+1)
                         {
 
                          if((snp_chance_A  >= 2*snp_nochance) && (snp_chance_A > (snp_chance_T+snp_chance_G+snp_chance_C)))
                              {
-                              current_sec.replace(pos-(1+leniency),1,"A");
+                              current_sec.replace(pos-(1+opt::leniency),1,"A");
 
                              }   
                          if((snp_chance_T  >= 2*snp_nochance) && (snp_chance_T > (snp_chance_A+snp_chance_G+snp_chance_C)))
                              {
-                              current_sec.replace(pos-(1+leniency),1,"T");
+                              current_sec.replace(pos-(1+opt::leniency),1,"T");
 
                              }   
                          if((snp_chance_G  >= 2*snp_nochance) && (snp_chance_G > (snp_chance_A+snp_chance_T+snp_chance_C)))
                              {
-                              current_sec.replace(pos-(1+leniency),1,"G");
+                              current_sec.replace(pos-(1+opt::leniency),1,"G");
 
                               }   
                          if((snp_chance_C  >= 2*snp_nochance) && (snp_chance_C > (snp_chance_A+snp_chance_G+snp_chance_T)))
                              {
-                              current_sec.replace(pos-(1+leniency),1,"C");
+                              current_sec.replace(pos-(1+opt::leniency),1,"C");
    
                              }   
                           unmatch_count+=1;
@@ -219,17 +241,13 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
                                if(end-start > ((opt::k)+min_exon))
                                     {     
                                           int minus_counter = 0, snp_chance_A=0, snp_chance_C=0, snp_chance_G=0, snp_chance_T=0, snp_nochance=0;
-                                          for(int a_minus=(x-1); a_minus>=(x-leniency); a_minus-- )
+                                          for(int a_minus=(x-1); a_minus>=(x-opt::leniency); a_minus-- )
                                           {
                                            
-                                          string it_rev = Kmer(current_sec.substr (a_minus,(opt::k))).str();                               
-                                        
+                                          string it_rev = Kmer(current_sec.substr (a_minus,(opt::k))).str();                                                                       
                                           string it_a = (it_rev).replace((minus_counter), 1, "A");
-                                         
-                                          string it_t = (it_rev).replace((minus_counter), 1, "T");
-                                      
-                                          string it_g = (it_rev).replace((minus_counter), 1, "G");
-                                          
+                                          string it_t = (it_rev).replace((minus_counter), 1, "T");                                      
+                                          string it_g = (it_rev).replace((minus_counter), 1, "G");                                          
                                           string it_c = (it_rev).replace((minus_counter), 1, "C");
                                          
                                           minus_counter = minus_counter + 1;
@@ -264,7 +282,7 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
                                              }     
                                         }
                     
-			                      if((end - start >= (((opt::k)-leniency)-2)) && ((end-start)<= ((opt::k)+min_exon)))
+			                      if((end - start >= (((opt::k)-opt::leniency)-2)) && ((end-start)<= ((opt::k)+min_exon)))
                                      {
 			                                 
 			                                  bfile << "," << start-1 << "\n" << (rec.id) <<","<< end-opt::k ;
@@ -301,12 +319,6 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
          {
              int check_flag=0;
              carr=arr;
-            /*
-             for (std::vector<int>::const_iterator i = carr.begin(); i != carr.end(); ++i)
-             std::cout << *i << ',';
-             for (std::vector<int>::const_iterator i = arr.begin(); i != arr.end(); ++i)
-             std::cout << *i << ',';
-            */
 
              if(!carr.empty() && carr.size()==2)
                  {
@@ -471,7 +483,7 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
 
 }	
 
-
+*/
 
 int main(int argc, char** argv) {
 
@@ -489,8 +501,17 @@ int main(int argc, char** argv) {
             arg >> opt::leniency;
             break;
         case 'i':
-       			arg >> opt::inputBloomPath; break;
-            
+         	arg >> opt::inputBloomPath; 
+       	    break;
+        case 'h':
+            arg >> opt::nhash;
+            break;
+        case 'b':
+            arg >> opt::ibits;
+		case 'X':
+		    	opt::internalexons = true; break;  
+		case 'v':
+			opt::verbose++; break;
         case OPT_HELP:
             std::cerr << USAGE_MESSAGE;
             exit(EXIT_SUCCESS);
@@ -504,7 +525,7 @@ int main(int argc, char** argv) {
             exit(EXIT_FAILURE);
         }
     }
-    if (argc - optind < 1) {
+    if (argc - optind < 0) {
         std::cerr << PROGRAM ": missing arguments\n";
         die = true;
     }
@@ -513,6 +534,32 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }
 
-        findJunctions(*bloom, int optind, char** argv);
+    
+	if (!opt::inputBloomPath.empty()) {
+
+		if (opt::verbose)
+			std::cerr << "Loading Bloom filter from `"
+				<< opt::inputBloomPath << "'...\n";
+		
+		const char* inputPath = opt::inputBloomPath.c_str();
+		cerr << inputPath <<"\n";
+		
+		size_t dbfSize=3000000000,sbfSize=2000000000;
+		BloomFilter bloom(sbfSize*opt::ibits, opt::nhash, opt::k,inputPath);
+		cerr << bloom.getPop() << "\n";
+        //string it = "ATCGCTGATGATCGCTGATGATCGCTGATGATCGCTGATGATCGCTGATG";
+		//string it = "CTCTTCTTGCTCAAAGTATTGTTATGCTCATCTGTATGATTTTGATGCTG";
+		//string it = "AAATAAATGCTAAATTTTCTGGCCTGATTTAATGTAGAAAAATAAAATCT";
+		  string it = "AGTTCCAATTCTCTTAGCAGTTCCAATTCTCTTAGCTATAAAATTATGAT";
+		  if(bloom.contains(it.c_str()))
+			  cerr << "kemr is in filter\n";
+		  else
+			  cerr << "kemr NOT in filter\n";
+		//bloom = new BloomFilter(sbfSize*opt::ibits, opt::nhash, opt::k,inputPath);
+       // findJunctions(*bloom, int optind, char** argv);
 
     }
+	else
+		cerr << "No input file\n";	
+	
+}
