@@ -128,22 +128,31 @@ void loadBFfq(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
     }
 }
 
-/*void loadBFfa(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
-	bool good = true;
-	#pragma omp parallel
+bool getSeq(std::ifstream &uFile, std::string &line) {
+    bool good=false;
+    std::string hline;
+    line.clear();
+    do {
+            good=getline(uFile, hline);
+            if(hline[0]=='>'&&!line.empty()) break;// !line.empty() for the first rec
+            if(hline[0]!='>')line+=hline;
+        } while(good);
+    
+    if(!good&&!line.empty())
+            good=true;
+
+    return good;
+}
+
+void loadBFfa(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
+    bool good = true;
+    #pragma omp parallel
     for(string seq, hseq; good;) {
-		string line;
-		#pragma omp critical(in)
-		{
-			good = getline(in, seq);
-			while(good&&seq[0]!='>') {
-				line+=seq;
-				good = getline(in, seq);
-			}
-		}
-		seqLoad(dbFilter, sbFilter, line);
+        #pragma omp critical(in)
+        good = getSeq(in,seq);
+        if(good) seqLoad(dbFilter, sbFilter, seq);
     }
-}*/
+}
 
 int main(int argc, char** argv) {
     double sTime = omp_get_wtime();
@@ -206,7 +215,8 @@ int main(int argc, char** argv) {
 #endif
 
 
-    size_t dbfSize=22000000000,sbfSize=4000000000;
+    //size_t dbfSize=3000000000,sbfSize=4000000000;
+    size_t dbfSize=3000000000,sbfSize=2000000000;
     //size_t dbfSize=3176131308,sbfSize=2258862151;
     //getCardinality(dbfSize,sbfSize);
     BloomFilter dbFilter(dbfSize*opt::ibits, opt::nhash, opt::kmLen);
@@ -225,11 +235,22 @@ int main(int argc, char** argv) {
         //}
         in.close();
     }
+    
+    string it = "AGTTCCAATTCTCTTAGCAGTTCCAATTCTCTTAGCTATAAAATTATGAT";
+	  if(sbFilter.contains(it.c_str()))
+		  cerr << "kemr is in filter\n";
+	  else
+		  cerr << "kemr NOT in filter\n";
+
+	  sbFilter.insert(it.c_str());
+    
+    
     sbFilter.storeFilter("sfilter.bf");
 	cout << "h= " << opt::nhash << "\n";
 	cout << "k= " << opt::kmLen << "\n";
 	cout << "b= " << opt::ibits << "\n";
 	cout << "FPR= " << setprecision(4) << fixed << pow(1.0*sbFilter.getPop()/sbfSize/opt::ibits,opt::nhash) << "\n";
+	cout << "popcnt= " << sbFilter.getPop() << "\n";
 	
     cerr << "time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
     return 0;

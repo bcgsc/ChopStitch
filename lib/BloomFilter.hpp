@@ -60,7 +60,7 @@ public:
     }
 
     void insert(const char* kmer) {
-        uint64_t hVal = NTC64(kmer, m_kmerSize);
+        uint64_t hVal = NTPC64(kmer, m_kmerSize);
         for (unsigned i = 0; i < m_hashNum; i++) {
             uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
             mhVal ^= mhVal >> multiShift;
@@ -70,9 +70,7 @@ public:
     }
 
     void insert(const char * kmer, uint64_t& fhVal, uint64_t& rhVal) {
-        fhVal = getFhval(kmer, m_kmerSize);
-        rhVal = getRhval(kmer, m_kmerSize);
-        uint64_t hVal = fhVal ^ rhVal;
+    	uint64_t hVal = NTPC64(kmer, m_kmerSize, fhVal, rhVal);
         for (unsigned i = 0; i < m_hashNum; i++) {
             uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
             mhVal ^= mhVal >> multiShift;
@@ -82,9 +80,7 @@ public:
     }
 
     void insert(uint64_t& fhVal, uint64_t& rhVal, const char charOut, const char charIn) {
-        fhVal = rol(fhVal, 1)^rol(seedTab[charOut], m_kmerSize)^seedTab[charIn];
-        rhVal = ror(rhVal, 1)^ ror(seedTab[(unsigned char)charOut + cpOff], 1)^ rol(seedTab[(unsigned char)charIn+cpOff],m_kmerSize-1);
-        uint64_t hVal = fhVal ^ rhVal;
+        uint64_t hVal = NTPC64(fhVal, rhVal, charOut, charIn, m_kmerSize);
         for (unsigned i = 0; i < m_hashNum; i++) {
             uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
             mhVal ^= mhVal >> multiShift;
@@ -105,7 +101,7 @@ public:
     }
 
     bool contains(const char* kmer) const {
-        uint64_t hVal = getFhval(kmer, m_kmerSize) ^ getRhval(kmer, m_kmerSize);
+    	uint64_t hVal = NTPC64(kmer, m_kmerSize);
         for (unsigned i = 0; i < m_hashNum; i++) {
             uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
             mhVal ^= mhVal >> multiShift;
@@ -117,9 +113,7 @@ public:
     }
 
     bool contains(const char * kmer, uint64_t& fhVal, uint64_t& rhVal) {
-        fhVal = getFhval(kmer, m_kmerSize);
-        rhVal = getRhval(kmer, m_kmerSize);
-        uint64_t hVal = fhVal ^ rhVal;
+        uint64_t hVal = NTPC64(kmer, m_kmerSize, fhVal, rhVal);
         for (unsigned i = 0; i < m_hashNum; i++) {
             uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
             mhVal ^= mhVal >> multiShift;
@@ -131,9 +125,7 @@ public:
     }
 
     bool contains(uint64_t& fhVal, uint64_t& rhVal, const char charOut, const char charIn) {
-        fhVal = rol(fhVal, 1)^ rol(seedTab[charOut], m_kmerSize)^ seedTab[charIn];
-        rhVal = ror(rhVal, 1)^ ror(seedTab[(charOut + cpOff)], 1)^ rol(seedTab[(charIn + cpOff)],m_kmerSize - 1);
-        uint64_t hVal = (rhVal < fhVal) ? rhVal : fhVal;
+        uint64_t hVal = NTPC64(fhVal, rhVal, charOut, charIn, m_kmerSize);
         for (unsigned i = 0; i < m_hashNum; i++) {
             uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
             mhVal ^= mhVal >> multiShift;
