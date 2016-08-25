@@ -10,6 +10,8 @@
 #include <cmath>
 
 #include "BloomFilter.hpp"
+#include "RollingHashIterator.h"
+
 #include "Uncompress.h"
 
 #ifdef _OPENMP
@@ -73,7 +75,7 @@ unsigned getftype(std::ifstream &in) {
     return 2;
 }
 
-inline void seqLoad(BloomFilter &dbFilter, BloomFilter &sbFilter, const string &seq) {
+/*inline void seqLoad(BloomFilter &dbFilter, BloomFilter &sbFilter, const string &seq) {
     if (seq.size() < opt::kmLen) return;
     uint64_t hVal, fhVal=0, rhVal=0;
     for(unsigned seqIndex=0; seqIndex<seq.length()-opt::kmLen+1;) {
@@ -106,7 +108,7 @@ inline void seqLoad(BloomFilter &dbFilter, BloomFilter &sbFilter, const string &
                 sbFilter.insert(hVal);
         }
     }
-}
+}*/
 
 void loadBFfq(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
     bool good = true;
@@ -115,6 +117,9 @@ void loadBFfq(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
     //good = getline(in, hseq);
     //good = getline(in, hseq);
     //if(good) seqLoad(dbFilter, sbFilter, seq);
+    
+    
+        
     #pragma omp parallel
     for(string seq, hseq; good;) {
         #pragma omp critical(in)
@@ -124,7 +129,17 @@ void loadBFfq(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
             good = getline(in, hseq);
             good = getline(in, hseq);
         }
-        if(good) seqLoad(dbFilter, sbFilter, seq);
+        if(good) {
+			 //seqLoad(dbFilter, sbFilter, seq);
+			RollingHashIterator itr(seq, opt::nhash, opt::kmLen);			
+			while (itr != itr.end()) {
+				if(!dbFilter.contains(*itr))
+					dbFilter.insert(*itr);
+				else
+					sbFilter.insert(*itr);
+				itr++;
+			}
+		 }
     }
 }
 
@@ -150,7 +165,18 @@ void loadBFfa(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
     for(string seq, hseq; good;) {
         #pragma omp critical(in)
         good = getSeq(in,seq);
-        if(good) seqLoad(dbFilter, sbFilter, seq);
+        //if(good) seqLoad(dbFilter, sbFilter, seq);
+        if(good) {
+			 //seqLoad(dbFilter, sbFilter, seq);
+			RollingHashIterator itr(seq, opt::nhash, opt::kmLen);			
+			while (itr != itr.end()) {
+				if(!dbFilter.contains(*itr))
+					dbFilter.insert(*itr);
+				else
+					sbFilter.insert(*itr);
+				itr++;
+			}
+		 }
     }
 }
 
@@ -215,8 +241,8 @@ int main(int argc, char** argv) {
 #endif
 
 
-    //size_t dbfSize=3000000000,sbfSize=4000000000;
-    size_t dbfSize=3000000000,sbfSize=2000000000;
+    /*//size_t dbfSize=3000000000,sbfSize=4000000000;
+    size_t dbfSize=22000000000,sbfSize=4000000000;
     //size_t dbfSize=3176131308,sbfSize=2258862151;
     //getCardinality(dbfSize,sbfSize);
     BloomFilter dbFilter(dbfSize*opt::ibits, opt::nhash, opt::kmLen);
@@ -243,9 +269,19 @@ int main(int argc, char** argv) {
 		  cerr << "kemr NOT in filter\n";
 
 	  sbFilter.insert(it.c_str());
+    */
+    size_t dbfSize=22000000000,sbfSize=4000000000;
+    BloomFilter dbFilter(dbfSize*opt::ibits, opt::nhash, opt::kmLen);
+    BloomFilter sbFilter(sbfSize*opt::ibits, opt::nhash, opt::kmLen);
     
+    for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
+        std::ifstream in(inFiles[file_i].c_str());
+		loadBFfq(dbFilter, sbFilter, in);
+		in.close();
+	}
     
-    sbFilter.storeFilter("sfilter.bf");
+	sbFilter.storeFilter("sfilter.bf");
+
 	cout << "h= " << opt::nhash << "\n";
 	cout << "k= " << opt::kmLen << "\n";
 	cout << "b= " << opt::ibits << "\n";

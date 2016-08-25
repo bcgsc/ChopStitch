@@ -1,6 +1,6 @@
 CXX=g++
 OPTFLAGS=-O3 -fopenmp
-LIBPATH=-Ilib -ldl
+LIBPATH=-Ilib/ -Ibtl_bloomfilter/ -ldl 
 
 all: CreateBloom
 
