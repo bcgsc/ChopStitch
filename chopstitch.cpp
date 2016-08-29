@@ -17,8 +17,9 @@
 #include <getopt.h>
 #include <iostream>
 #include <cstring>
-#include <algorithm> 
-
+#include <algorithm>
+#include "lib/Options.h"
+#include "lib/FastaConcat.h"
 #include "lib/BloomFilter.hpp"
 
 
@@ -51,11 +52,11 @@ using namespace std;
 namespace opt {
 unsigned leniency=0;
 unsigned k=50;
-unsigned nhash=1;
+unsigned nhash=7;
 static string inputBloomPath;
 unsigned ibits=8;   
 bool internalexons = false;
-unsigned verbose=0;
+//unsigned verbose=0;
 }
 
 static const char shortopts[] = "k:l:i:h:Xv";
@@ -92,9 +93,6 @@ bool getSeq(std::ifstream &uFile, std::string &line) {
 }
 
 
-
-/*
-
 void findJunctions(BloomFilter& bloom, int optind, char** argv)
 
 {
@@ -102,11 +100,10 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
 
    BloomFilter& bf = bloom;
  
-
    std::ofstream bfile("boundaries.csv", std::ios::app);
    std::ofstream efile("exons.fa", std::ios::app);
    std::ofstream cefile("confident_exons.fa", std::ios::app);
-
+   string read1, read2, final_Seq;
 
    for (FastaRecord rec; reader >> rec;) 
      {
@@ -145,16 +142,17 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
             {
              //Kmer it = Kmer(current_sec.substr (x,(opt::k)));
     	       string it = current_sec.substr (x,(opt::k));
-    	       getCanon(it);
+    	       //getCanon(it);
     	       
 		       pos=pos+1;
-		       if((bf[it]))
+		       
+		       if((bf.contains(it.c_str())))
 		           {
 		               last_match_pos=pos;
 		           }
 		        
               	
-		        if((!bf[it]) && (myflag==0) && (first_match==1))
+		        if((!(bf.contains(it.c_str())) && (myflag==0) && (first_match==1)))
 		           {
 		             myflag=1;
 		             start = pos;
@@ -162,26 +160,26 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
                      snp_chance_A=0, snp_chance_C=0, snp_chance_G=0, snp_chance_T=0, snp_nochance=0;                     
 		           }
 		        
-		         if((!bf[it]) && (myflag==1))
+		         if((!(bf.contains(it.c_str())) && (myflag==1)))
 		            {
                     if(unmatch_count<=opt::leniency)
                         {  
                          
-                         string it_a = (it.str()).replace(((it.str()).length())-unmatch_count, 1, "A"); 
-                         string it_t = (it.str()).replace(((it.str()).length())-unmatch_count, 1, "T");                        
-                         string it_g = (it.str()).replace(((it.str()).length())-unmatch_count, 1, "G");                        
-                         string it_c = (it.str()).replace(((it.str()).length())-unmatch_count, 1, "C");
+                         string it_a = (it).replace(((it).length())-unmatch_count, 1, "A"); 
+                         string it_t = (it).replace(((it).length())-unmatch_count, 1, "T");                        
+                         string it_g = (it).replace(((it).length())-unmatch_count, 1, "G");                        
+                         string it_c = (it).replace(((it).length())-unmatch_count, 1, "C");
                         
-                         if(bf[Kmer(it_a)]){snp_chance_A++;unmatch_count+=1;
+                         if(bf.contains(it_a.c_str())){snp_chance_A++;unmatch_count+=1;
                                                  goto SNP_found;}
 
-                         else if(bf[Kmer(it_t)]){snp_chance_T++;unmatch_count+=1;
+                         else if(bf.contains(it_t.c_str())){snp_chance_T++;unmatch_count+=1;
                                                  goto SNP_found;}
                          
-                         else if(bf[Kmer(it_g)]){snp_chance_G++;unmatch_count+=1;
+                         else if(bf.contains(it_g.c_str())){snp_chance_G++;unmatch_count+=1;
                                                  goto SNP_found;}
                          
-                         else if(bf[Kmer(it_c)]){snp_chance_C++;unmatch_count+=1;
+                         else if(bf.contains(it_c.c_str())){snp_chance_C++;unmatch_count+=1;
                                                  goto SNP_found;}
                          
                          else{snp_nochance++;}
@@ -217,22 +215,22 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
 		            }                
                 SNP_found:
 
-                if((bf[it]) && (myflag==1) && (first_match==1))
+                if((bf.contains(it.c_str())) && (myflag==1) && (first_match==1))
                     {
                        unsigned int next_kmer = x;
-                       if (!(bf[Kmer(current_sec.substr (++next_kmer,(opt::k)))]))
+                       if (!(bf.contains((current_sec.substr (++next_kmer,(opt::k))).c_str())))
 	                        {  
                              unmatch_count+=1;
                            }
                     }
 
 
-              unsigned int a = x;                           
+                unsigned int a = x;                           
 
-		        if((bf[it]) && (myflag==1) &&  (bf[Kmer(current_sec.substr (++a,(opt::k)))]) && (first_match==1))
+		        if((bf.contains(it.c_str())) && (myflag==1) &&  (bf.contains((current_sec.substr (++a,(opt::k))).c_str())) && (first_match==1))
 	               {  
                        
-                        if((bf[Kmer(current_sec.substr (++a,(opt::k)))]))
+                        if((bf.contains((current_sec.substr (++a,(opt::k))).c_str())))
                             {
                                
 			                      myflag = 0;
@@ -244,7 +242,7 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
                                           for(int a_minus=(x-1); a_minus>=(x-opt::leniency); a_minus-- )
                                           {
                                            
-                                          string it_rev = Kmer(current_sec.substr (a_minus,(opt::k))).str();                                                                       
+                                          string it_rev = current_sec.substr (a_minus,(opt::k));                                                                       
                                           string it_a = (it_rev).replace((minus_counter), 1, "A");
                                           string it_t = (it_rev).replace((minus_counter), 1, "T");                                      
                                           string it_g = (it_rev).replace((minus_counter), 1, "G");                                          
@@ -252,13 +250,13 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
                                          
                                           minus_counter = minus_counter + 1;
 
-                                         if(bf[Kmer(it_a)]){snp_chance_A++;}
+                                         if(bf.contains(it_a.c_str())){snp_chance_A++;}
 
-                                         else if(bf[Kmer(it_t)]){snp_chance_T++;}
+                                         else if(bf.contains(it_t.c_str())){snp_chance_T++;}
                          
-                                         else if(bf[Kmer(it_g)]){snp_chance_G++;}
+                                         else if(bf.contains(it_g.c_str())){snp_chance_G++;}
                          
-                                         else if(bf[Kmer(it_c)]){snp_chance_C++;}
+                                         else if(bf.contains(it_c.c_str())){snp_chance_C++;}
                          
                                          else{snp_nochance++;}
 
@@ -293,11 +291,11 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
 		             }
 
               //Testing the first matching kmer in the bloom filter
-              if((bf[it]) && first_match==0)
+              if(bf.contains(it.c_str()) && first_match==0)
 		              {
                           unsigned int next_it = x;
                           //Added extra checks to avoid False positives
-                          if(bf[Kmer(current_sec.substr (++next_it,(opt::k)))] && bf[Kmer(current_sec.substr (++next_it,(opt::k)))])
+                          if(bf.contains((current_sec.substr (++next_it,(opt::k))).c_str()) && bf.contains((current_sec.substr (++next_it,(opt::k))).c_str()))
                             { 
                              bfile << (rec.id)<< ",";
 	    		                 bfile << pos-((opt::k)-1);
@@ -483,7 +481,6 @@ void findJunctions(BloomFilter& bloom, int optind, char** argv)
 
 }	
 
-*/
 
 int main(int argc, char** argv) {
 
@@ -556,8 +553,8 @@ int main(int argc, char** argv) {
 			  cerr << "kmer is in filter\n";
 		  else
 			  cerr << "kmer NOT in filter\n";
-		//bloom = new BloomFilter(sbfSize*opt::ibits, opt::nhash, opt::k,inputPath);
-       // findJunctions(*bloom, int optind, char** argv);
+		
+        findJunctions(bloom, optind, argv);
 
     }
 	else

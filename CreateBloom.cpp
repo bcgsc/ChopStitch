@@ -269,14 +269,14 @@ int main(int argc, char** argv) {
 	}
 	
 	
-    //cerr << "Load time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
+    cerr << "Load time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
     
-	//sbFilter.storeFilter("sfilter.bf");
+	sbFilter.storeFilter("sfilter.bf");
 
-	//cout << "h= " << opt::nhash << "\n";
-	//cout << "k= " << opt::kmLen << "\n";
-	//cout << "b= " << opt::ibits << "\n";
-	//cout << "FPR= " << setprecision(4) << fixed << pow(1.0*sbFilter.getPop()/sbfSize/opt::ibits,opt::nhash) << "\n";
+	cout << "h= " << opt::nhash << "\n";
+	cout << "k= " << opt::kmLen << "\n";
+	cout << "b= " << opt::ibits << "\n";
+	cout << "FPR= " << setprecision(4) << fixed << pow(1.0*sbFilter.getPop()/sbfSize/opt::ibits,opt::nhash) << "\n";
 	cout << "popcnt of dbFilter and sbFilter: " << dbFilter.getPop() << "\t" << sbFilter.getPop() << "\n";
 	
     cerr << "time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
