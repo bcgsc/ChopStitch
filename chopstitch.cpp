@@ -546,15 +546,16 @@ int main(int argc, char** argv) {
 		
 		size_t dbfSize=3000000000,sbfSize=2000000000;
 		BloomFilter bloom(sbfSize*opt::ibits, opt::nhash, opt::k,inputPath);
+		//BloomFilter bloom(inputPath);
 		cerr << bloom.getPop() << "\n";
         //string it = "ATCGCTGATGATCGCTGATGATCGCTGATGATCGCTGATGATCGCTGATG";
 		//string it = "CTCTTCTTGCTCAAAGTATTGTTATGCTCATCTGTATGATTTTGATGCTG";
 		//string it = "AAATAAATGCTAAATTTTCTGGCCTGATTTAATGTAGAAAAATAAAATCT";
-		  string it = "AGTTCCAATTCTCTTAGCAGTTCCAATTCTCTTAGCTATAAAATTATGAT";
+		  string it = "GTGATGTCTGCATTCAAGTCACAGAGTTGAACATTGCCTTTCATAGAGCA";
 		  if(bloom.contains(it.c_str()))
-			  cerr << "kemr is in filter\n";
+			  cerr << "kmer is in filter\n";
 		  else
-			  cerr << "kemr NOT in filter\n";
+			  cerr << "kmer NOT in filter\n";
 		//bloom = new BloomFilter(sbfSize*opt::ibits, opt::nhash, opt::k,inputPath);
        // findJunctions(*bloom, int optind, char** argv);
 

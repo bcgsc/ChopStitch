@@ -1,14 +1,18 @@
 CXX=g++
 OPTFLAGS=-O3 -fopenmp
-LIBPATH=-Ilib/ -Ibtl_bloomfilter/ -ldl 
+LIBPATH=-Ilib/ -ldl 
 
-all: CreateBloom
+all: CreateBloom ChopStitch
 
-SRCS=CreateBloom.cpp lib/Uncompress.cpp lib/SignalHandler.cpp lib/Fcontrol.cpp 
+SRCS_B=CreateBloom.cpp lib/Uncompress.cpp lib/SignalHandler.cpp lib/Fcontrol.cpp 
+SRCS_C=chopstitch.cpp
 
-CreateBloom: $(SRCS)
+CreateBloom: $(SRCS_B)
 	$(CXX) $(OPTFLAGS) $(LIBPATH) -o $@ $^
 
+ChopStitch: $(SRCS_C)
+	$(CXX) $(OPTFLAGS) -o $@ $^
+
 clean:
-	rm CreateBloom 
+	rm CreateBloom ChopStitch
 

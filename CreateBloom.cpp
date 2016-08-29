@@ -10,7 +10,7 @@
 #include <cmath>
 
 #include "BloomFilter.hpp"
-#include "RollingHashIterator.h"
+//#include "RollingHashIterator.h"
 
 #include "Uncompress.h"
 
@@ -75,7 +75,7 @@ unsigned getftype(std::ifstream &in) {
     return 2;
 }
 
-/*inline void seqLoad(BloomFilter &dbFilter, BloomFilter &sbFilter, const string &seq) {
+inline void seqLoad(BloomFilter &dbFilter, BloomFilter &sbFilter, const string &seq) {
     if (seq.size() < opt::kmLen) return;
     uint64_t hVal, fhVal=0, rhVal=0;
     for(unsigned seqIndex=0; seqIndex<seq.length()-opt::kmLen+1;) {
@@ -93,22 +93,16 @@ unsigned getftype(std::ifstream &in) {
                 seqIndex+=locN+1;
             }
             if(hGood) {
-                if(!dbFilter.contains(hVal))
-                    dbFilter.insert(hVal);
-                else
-                    sbFilter.insert(hVal);
+				if(!dbFilter.insert_make_change(hVal))sbFilter.insert(hVal);
             }
         }
         else {
             hVal=NTPC64(fhVal, rhVal, seq[seqIndex-1], seq[seqIndex-1+opt::kmLen], opt::kmLen);
-            seqIndex++;
-            if(!dbFilter.contains(hVal))
-                dbFilter.insert(hVal);
-            else
-                sbFilter.insert(hVal);
+            seqIndex++;            		
+			if(!dbFilter.insert_make_change(hVal))sbFilter.insert(hVal);
         }
     }
-}*/
+}
 
 void loadBFfq(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
     bool good = true;
@@ -130,18 +124,19 @@ void loadBFfq(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
             good = getline(in, hseq);
         }
         if(good) {
-			 //seqLoad(dbFilter, sbFilter, seq);
-			RollingHashIterator itr(seq, opt::nhash, opt::kmLen);			
+			 seqLoad(dbFilter, sbFilter, seq);
+			/*RollingHashIterator itr(seq, opt::nhash, opt::kmLen);			
 			while (itr != itr.end()) {
-				if(!dbFilter.contains(*itr))
+			//	if(!dbFilter.contains(*itr))
 					dbFilter.insert(*itr);
-				else
-					sbFilter.insert(*itr);
+				//else
+					//sbFilter.insert(*itr);
 				itr++;
-			}
+			}*/
 		 }
     }
 }
+
 
 bool getSeq(std::ifstream &uFile, std::string &line) {
     bool good=false;
@@ -159,7 +154,7 @@ bool getSeq(std::ifstream &uFile, std::string &line) {
     return good;
 }
 
-void loadBFfa(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
+/*void loadBFfa(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
     bool good = true;
     #pragma omp parallel
     for(string seq, hseq; good;) {
@@ -178,7 +173,7 @@ void loadBFfa(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
 			}
 		 }
     }
-}
+}*/
 
 int main(int argc, char** argv) {
     double sTime = omp_get_wtime();
@@ -241,52 +236,48 @@ int main(int argc, char** argv) {
 #endif
 
 
-    /*//size_t dbfSize=3000000000,sbfSize=4000000000;
-    size_t dbfSize=22000000000,sbfSize=4000000000;
-    //size_t dbfSize=3176131308,sbfSize=2258862151;
-    //getCardinality(dbfSize,sbfSize);
+    /*size_t dbfSize=22000000000,sbfSize=4000000000;
     BloomFilter dbFilter(dbfSize*opt::ibits, opt::nhash, opt::kmLen);
     BloomFilter sbFilter(sbfSize*opt::ibits, opt::nhash, opt::kmLen);
 
     for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
         std::ifstream in(inFiles[file_i].c_str());
-        //unsigned ftype = getftype(in);
-        //if(ftype==0)
         loadBFfq(dbFilter, sbFilter, in);
-        // else if (ftype==1)
-        //    loadBFfa(dbFilter, sbFilter, in);
-        //else {
-        //	cerr << "Error in file format: " << inFiles[file_i];
-        //	exit(EXIT_FAILURE);
-        //}
         in.close();
     }
+    sbFilter.storeFilter("sfilter.bf");*/
     
-    string it = "AGTTCCAATTCTCTTAGCAGTTCCAATTCTCTTAGCTATAAAATTATGAT";
+/*    string it = "AGTTCCAATTCTCTTAGCAGTTCCAATTCTCTTAGCTATAAAATTATGAT";
 	  if(sbFilter.contains(it.c_str()))
 		  cerr << "kemr is in filter\n";
 	  else
 		  cerr << "kemr NOT in filter\n";
 
 	  sbFilter.insert(it.c_str());
-    */
-    size_t dbfSize=22000000000,sbfSize=4000000000;
+*/
+    
+    //size_t dbfSize=22000000000,sbfSize=4000000000;
+    size_t dbfSize=3000000000,sbfSize=2000000000;
+   
     BloomFilter dbFilter(dbfSize*opt::ibits, opt::nhash, opt::kmLen);
     BloomFilter sbFilter(sbfSize*opt::ibits, opt::nhash, opt::kmLen);
     
     for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
         std::ifstream in(inFiles[file_i].c_str());
-		loadBFfq(dbFilter, sbFilter, in);
+		loadBFfq(dbFilter, sbFilter, in);		
 		in.close();
 	}
+	
+	
+    //cerr << "Load time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
     
-	sbFilter.storeFilter("sfilter.bf");
+	//sbFilter.storeFilter("sfilter.bf");
 
-	cout << "h= " << opt::nhash << "\n";
-	cout << "k= " << opt::kmLen << "\n";
-	cout << "b= " << opt::ibits << "\n";
-	cout << "FPR= " << setprecision(4) << fixed << pow(1.0*sbFilter.getPop()/sbfSize/opt::ibits,opt::nhash) << "\n";
-	cout << "popcnt= " << sbFilter.getPop() << "\n";
+	//cout << "h= " << opt::nhash << "\n";
+	//cout << "k= " << opt::kmLen << "\n";
+	//cout << "b= " << opt::ibits << "\n";
+	//cout << "FPR= " << setprecision(4) << fixed << pow(1.0*sbFilter.getPop()/sbfSize/opt::ibits,opt::nhash) << "\n";
+	cout << "popcnt of dbFilter and sbFilter: " << dbFilter.getPop() << "\t" << sbFilter.getPop() << "\n";
 	
     cerr << "time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
     return 0;
