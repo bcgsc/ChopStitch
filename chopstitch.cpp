@@ -20,7 +20,7 @@
 #include <algorithm>
 #include "lib/Options.h"
 #include "lib/FastaConcat.h"
-#include "lib/BloomFilter.hpp"
+#include "lib/BloomFilter.hpp" 
 
 
 #define PROGRAM "Chopstitch"
@@ -52,14 +52,14 @@ using namespace std;
 namespace opt {
 unsigned leniency=0;
 unsigned k=50;
-unsigned nhash=7;
+unsigned nhash=3;
 static string inputBloomPath;
 unsigned ibits=8;   
 bool internalexons = false;
 //unsigned verbose=0;
 }
 
-static const char shortopts[] = "k:l:i:h:Xv";
+static const char shortopts[] = "k:l:i:h:X:v";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
@@ -541,18 +541,18 @@ int main(int argc, char** argv) {
 		const char* inputPath = opt::inputBloomPath.c_str();
 		cerr << inputPath <<"\n";
 		
-		size_t dbfSize=3000000000,sbfSize=2000000000;
+		size_t dbfSize=11000000000,sbfSize=4000000000; // Human_smallerBF
+		//size_t dbfSize=22000000000,sbfSize=4000000000; // Human
+		//size_t dbfSize=300000000,sbfSize=200000000; // C. elegans
+
 		BloomFilter bloom(sbfSize*opt::ibits, opt::nhash, opt::k,inputPath);
 		//BloomFilter bloom(inputPath);
 		cerr << bloom.getPop() << "\n";
-        //string it = "ATCGCTGATGATCGCTGATGATCGCTGATGATCGCTGATGATCGCTGATG";
-		//string it = "CTCTTCTTGCTCAAAGTATTGTTATGCTCATCTGTATGATTTTGATGCTG";
-		//string it = "AAATAAATGCTAAATTTTCTGGCCTGATTTAATGTAGAAAAATAAAATCT";
-		  string it = "GTGATGTCTGCATTCAAGTCACAGAGTTGAACATTGCCTTTCATAGAGCA";
-		  if(bloom.contains(it.c_str()))
-			  cerr << "kmer is in filter\n";
-		  else
-			  cerr << "kmer NOT in filter\n";
+		string it = "GTGATGTCTGCATTCAAGTCACAGAGTTGAACATTGCCTTTCATAGAGCA";
+		if(bloom.contains(it.c_str()))
+			cerr << "kmer is in filter\n";
+		else
+			cerr << "kmer NOT in filter\n";
 		
         findJunctions(bloom, optind, argv);
 

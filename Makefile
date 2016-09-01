@@ -5,7 +5,7 @@ LIBPATH=-Ilib/ -ldl
 all: CreateBloom ChopStitch
 
 SRCS_B=CreateBloom.cpp lib/Uncompress.cpp lib/SignalHandler.cpp lib/Fcontrol.cpp 
-SRCS_C=chopstitch.cpp
+SRCS_C=chopstitch.cpp lib/FastaReader.cpp lib/Sequence.cpp lib/Options.cpp
 
 CreateBloom: $(SRCS_B)
 	$(CXX) $(OPTFLAGS) $(LIBPATH) -o $@ $^

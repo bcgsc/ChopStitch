@@ -45,7 +45,7 @@ using namespace std;
 namespace opt {
 unsigned nThrd=1;
 unsigned ibits=8;
-unsigned nhash=1;
+unsigned nhash=3;
 unsigned kmLen=50;
 }
 
@@ -236,29 +236,11 @@ int main(int argc, char** argv) {
 #endif
 
 
-    /*size_t dbfSize=22000000000,sbfSize=4000000000;
-    BloomFilter dbFilter(dbfSize*opt::ibits, opt::nhash, opt::kmLen);
-    BloomFilter sbFilter(sbfSize*opt::ibits, opt::nhash, opt::kmLen);
 
-    for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
-        std::ifstream in(inFiles[file_i].c_str());
-        loadBFfq(dbFilter, sbFilter, in);
-        in.close();
-    }
-    sbFilter.storeFilter("sfilter.bf");*/
+    size_t dbfSize=11000000000,sbfSize=4000000000; // Human_smallerBF
+    //size_t dbfSize=22000000000,sbfSize=4000000000; // Human
+    //size_t dbfSize=300000000,sbfSize=200000000; // C. elegans
     
-/*    string it = "AGTTCCAATTCTCTTAGCAGTTCCAATTCTCTTAGCTATAAAATTATGAT";
-	  if(sbFilter.contains(it.c_str()))
-		  cerr << "kemr is in filter\n";
-	  else
-		  cerr << "kemr NOT in filter\n";
-
-	  sbFilter.insert(it.c_str());
-*/
-    
-    //size_t dbfSize=22000000000,sbfSize=4000000000;
-    size_t dbfSize=3000000000,sbfSize=2000000000;
-   
     BloomFilter dbFilter(dbfSize*opt::ibits, opt::nhash, opt::kmLen);
     BloomFilter sbFilter(sbfSize*opt::ibits, opt::nhash, opt::kmLen);
     
