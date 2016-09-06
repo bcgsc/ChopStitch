@@ -47,9 +47,12 @@ unsigned nThrd=1;
 unsigned ibits=8;
 unsigned nhash=3;
 unsigned kmLen=50;
+size_t dbSize=22000000000;
+size_t sbSize=4000000000;
+double fpr=0.01;
 }
 
-static const char shortopts[] = "t:k:b:h:c";
+static const char shortopts[] = "t:k:b:h:d:s:r:c";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
@@ -58,6 +61,9 @@ static const struct option longopts[] = {
     { "kmer",	required_argument, NULL, 'k' },
     { "ibit",	required_argument, NULL, 'b' },
     { "hash",	required_argument, NULL, 'h' },
+    { "dsize",	required_argument, NULL, 'd' },
+    { "ssize",	required_argument, NULL, 's' },
+    { "fpr",	required_argument, NULL, 'r' },  
     { "help",	no_argument, NULL, OPT_HELP },
     { "version",	no_argument, NULL, OPT_VERSION },
     { NULL, 0, NULL, 0 }
@@ -197,6 +203,15 @@ int main(int argc, char** argv) {
         case 'h':
             arg >> opt::nhash;
             break;
+        case 'd':
+            arg >> opt::dbSize;
+            break;
+        case 's':
+            arg >> opt::sbSize;
+            break;
+        case 'r':
+            arg >> opt::fpr;
+            break;
         case OPT_HELP:
             std::cerr << USAGE_MESSAGE;
             exit(EXIT_SUCCESS);
@@ -236,13 +251,16 @@ int main(int argc, char** argv) {
 #endif
 
 
-
-    size_t dbfSize=11000000000,sbfSize=4000000000; // Human_smallerBF
+    //size_t dbfSize=6000000000,sbfSize=4000000000; // Human_smallerBF
+    //size_t dbfSize=11000000000,sbfSize=4000000000; // Human_smallerBF
     //size_t dbfSize=22000000000,sbfSize=4000000000; // Human
     //size_t dbfSize=300000000,sbfSize=200000000; // C. elegans
     
-    BloomFilter dbFilter(dbfSize*opt::ibits, opt::nhash, opt::kmLen);
-    BloomFilter sbFilter(sbfSize*opt::ibits, opt::nhash, opt::kmLen);
+    
+    
+    
+    BloomFilter dbFilter(opt::dbSize*opt::ibits, opt::nhash, opt::kmLen);
+    BloomFilter sbFilter(opt::sbSize*opt::ibits, opt::nhash, opt::kmLen);
     
     for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
         std::ifstream in(inFiles[file_i].c_str());
@@ -258,7 +276,7 @@ int main(int argc, char** argv) {
 	cout << "h= " << opt::nhash << "\n";
 	cout << "k= " << opt::kmLen << "\n";
 	cout << "b= " << opt::ibits << "\n";
-	cout << "FPR= " << setprecision(4) << fixed << pow(1.0*sbFilter.getPop()/sbfSize/opt::ibits,opt::nhash) << "\n";
+	cout << "FPR= " << setprecision(4) << fixed << pow(1.0*sbFilter.getPop()/opt::sbSize/opt::ibits,opt::nhash) << "\n";
 	cout << "popcnt of dbFilter and sbFilter: " << dbFilter.getPop() << "\t" << sbFilter.getPop() << "\n";
 	
     cerr << "time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";

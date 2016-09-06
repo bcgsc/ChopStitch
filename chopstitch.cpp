@@ -541,8 +541,9 @@ int main(int argc, char** argv) {
 		const char* inputPath = opt::inputBloomPath.c_str();
 		cerr << inputPath <<"\n";
 		
-		size_t dbfSize=11000000000,sbfSize=4000000000; // Human_smallerBF
-		//size_t dbfSize=22000000000,sbfSize=4000000000; // Human
+		//size_t dbfSize=6000000000,sbfSize=4000000000; // Human_smallerBF		
+		//size_t dbfSize=11000000000,sbfSize=4000000000; // Human_smallerBF
+		size_t dbfSize=22000000000,sbfSize=4000000000; // Human
 		//size_t dbfSize=300000000,sbfSize=200000000; // C. elegans
 
 		BloomFilter bloom(sbfSize*opt::ibits, opt::nhash, opt::k,inputPath);
