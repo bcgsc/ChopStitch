@@ -50,73 +50,27 @@ public:
             m_filter[i]=0;
     }
 
-    bool insert_make_change(const uint64_t hVal) {
-		bool change=false;
+    bool insert_make_change(const uint64_t *hVal) {
+        bool change=false;
         for (unsigned i = 0; i < m_hashNum; i++) {
-            uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
-            mhVal ^= mhVal >> multiShift;
-            size_t hLoc = mhVal % m_size;            
+            size_t hLoc = hVal[i] % m_size;
             unsigned char old_byte = __sync_fetch_and_or(&m_filter[hLoc/8],(1<<(7-hLoc%8)));
             if((old_byte&(1<<(7-hLoc%8)))==0) change=true;
         }
         return change;
     }
-    
-    void insert(const uint64_t hVal) {
+
+    void insert(const uint64_t *hVal) {
         for (unsigned i = 0; i < m_hashNum; i++) {
-            uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
-            mhVal ^= mhVal >> multiShift;
-            size_t hLoc = mhVal % m_size;
+            size_t hLoc = hVal[i] % m_size;
             __sync_or_and_fetch(&m_filter[hLoc / 8], (1 << (7 - hLoc % 8)));
         }
-    }
-
-    void insert(const char* kmer) {
-        uint64_t hVal = NTPC64(kmer, m_kmerSize);
-        for (unsigned i = 0; i < m_hashNum; i++) {
-            uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
-            mhVal ^= mhVal >> multiShift;
-            size_t hLoc = mhVal % m_size;
-            __sync_or_and_fetch(&m_filter[hLoc / 8], (1 << (7 - hLoc % 8)));
-        }
-    }
-
-    void insert(const char * kmer, uint64_t& fhVal, uint64_t& rhVal) {
-    	uint64_t hVal = NTPC64(kmer, m_kmerSize, fhVal, rhVal);
-        for (unsigned i = 0; i < m_hashNum; i++) {
-            uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
-            mhVal ^= mhVal >> multiShift;
-            size_t hLoc = mhVal % m_size;
-            __sync_or_and_fetch(&m_filter[hLoc / 8], (1 << (7 - hLoc % 8)));
-        }
-    }
-
-    void insert(uint64_t& fhVal, uint64_t& rhVal, const char charOut, const char charIn) {
-        uint64_t hVal = NTPC64(fhVal, rhVal, charOut, charIn, m_kmerSize);
-        for (unsigned i = 0; i < m_hashNum; i++) {
-            uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
-            mhVal ^= mhVal >> multiShift;
-            size_t hLoc = mhVal % m_size;
-            __sync_or_and_fetch(&m_filter[hLoc / 8], (1 << (7 - hLoc % 8)));
-        }
-    }
-
-	bool contains(const uint64_t hVal) const {
-        for (unsigned i = 0; i < m_hashNum; i++) {
-            uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
-            mhVal ^= mhVal >> multiShift;
-            size_t hLoc = mhVal % m_size;
-            if ((m_filter[hLoc / 8] & (1 << (7 - hLoc % 8))) == 0)
-                return false;
-        }
-        return true;
     }
 
     bool contains(const char* kmer) const {
-    	uint64_t hVal = NTPC64(kmer, m_kmerSize);
+        uint64_t hVal = NTPC64(kmer, m_kmerSize);
         for (unsigned i = 0; i < m_hashNum; i++) {
-            uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
-            mhVal ^= mhVal >> multiShift;
+            uint64_t mhVal=NTE64(hVal, m_kmerSize, i);
             size_t hLoc = mhVal % m_size;
             if ((m_filter[hLoc / 8] & (1 << (7 - hLoc % 8))) == 0)
                 return false;
@@ -124,30 +78,6 @@ public:
         return true;
     }
 
-    bool contains(const char * kmer, uint64_t& fhVal, uint64_t& rhVal) {
-        uint64_t hVal = NTPC64(kmer, m_kmerSize, fhVal, rhVal);
-        for (unsigned i = 0; i < m_hashNum; i++) {
-            uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
-            mhVal ^= mhVal >> multiShift;
-            size_t hLoc = mhVal % m_size;
-            if ((m_filter[hLoc / 8] & (1 << (7 - hLoc % 8))) == 0)
-                return false;
-        }
-        return true;
-    }
-
-    bool contains(uint64_t& fhVal, uint64_t& rhVal, const char charOut, const char charIn) {
-        uint64_t hVal = NTPC64(fhVal, rhVal, charOut, charIn, m_kmerSize);
-        for (unsigned i = 0; i < m_hashNum; i++) {
-            uint64_t mhVal = hVal * (i ^ m_kmerSize * multiSeed);
-            mhVal ^= mhVal >> multiShift;
-            size_t hLoc = mhVal % m_size;
-            if ((m_filter[hLoc / 8] & (1 << (7 - hLoc % 8))) == 0)
-                return false;
-        }
-        return true;
-    } 
-      
     void storeFilter(const char * fPath) const {
         ofstream myFile(fPath, ios::out | ios::binary);
         myFile.write(reinterpret_cast<char*>(m_filter), (m_size + 7)/8);

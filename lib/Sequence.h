@@ -18,8 +18,8 @@ char codeToBase(uint8_t code);
 /** Return true if c is one of [ACGTacgt]. */
 static inline bool isACGT(char c)
 {
-	return c == 'A' || c == 'C' || c == 'G' || c == 'T'
-		|| c == 'a' || c == 'c' || c == 'g' || c == 't';
+    return c == 'A' || c == 'C' || c == 'G' || c == 'T'
+           || c == 'a' || c == 'c' || c == 'g' || c == 't';
 }
 
 /**
@@ -29,26 +29,46 @@ static inline bool isACGT(char c)
 static inline void
 flattenAmbiguityCodes(Sequence& seq, bool skipNs=true)
 {
-	for (Sequence::iterator it = seq.begin(); it != seq.end(); ++it) {
-		switch (toupper(*it)) {
-			case 'N':
-				if (!skipNs)
-					*it = 'A';
-				break;
-			case 'M': *it = 'A'; break;
-			case 'R': *it = 'A'; break;
-			case 'W': *it = 'A'; break;
-			case 'S': *it = 'C'; break;
-			case 'Y': *it = 'C'; break;
-			case 'K': *it = 'G'; break;
-			case 'V': *it = 'A'; break;
-			case 'H': *it = 'A'; break;
-			case 'D': *it = 'A'; break;
-			case 'B': *it = 'C'; break;
-			default:
-				break;
-		}
-	}
+    for (Sequence::iterator it = seq.begin(); it != seq.end(); ++it) {
+        switch (toupper(*it)) {
+        case 'N':
+            if (!skipNs)
+                *it = 'A';
+            break;
+        case 'M':
+            *it = 'A';
+            break;
+        case 'R':
+            *it = 'A';
+            break;
+        case 'W':
+            *it = 'A';
+            break;
+        case 'S':
+            *it = 'C';
+            break;
+        case 'Y':
+            *it = 'C';
+            break;
+        case 'K':
+            *it = 'G';
+            break;
+        case 'V':
+            *it = 'A';
+            break;
+        case 'H':
+            *it = 'A';
+            break;
+        case 'D':
+            *it = 'A';
+            break;
+        case 'B':
+            *it = 'C';
+            break;
+        default:
+            break;
+        }
+    }
 }
 
 /**
@@ -57,13 +77,13 @@ flattenAmbiguityCodes(Sequence& seq, bool skipNs=true)
 static inline bool
 containsAmbiguityCodes(const Sequence& seq, bool allowN=true)
 {
-	if (allowN) {
-		return seq.find_first_of("MRWSYKVHDBmrwsykvhdbNn")
-			!= std::string::npos;
-	} else {
-		return seq.find_first_of("MRWSYKVHDBmrwsykvhdb")
-			!= std::string::npos;
-	}
+    if (allowN) {
+        return seq.find_first_of("MRWSYKVHDBmrwsykvhdbNn")
+               != std::string::npos;
+    } else {
+        return seq.find_first_of("MRWSYKVHDBmrwsykvhdb")
+               != std::string::npos;
+    }
 }
 
 unsigned ambiguityToBitmask(char c);
@@ -72,25 +92,25 @@ unsigned bitmaskToAmbiguity(unsigned x);
 /** Return the bitwise-and of the specified ambiguity codes. */
 static inline char ambiguityAnd(char ca, char cb)
 {
-	char c = bitmaskToAmbiguity(
-			ambiguityToBitmask(ca) & ambiguityToBitmask(cb));
-	return islower(ca) && islower(cb) ? tolower(c) : c;
+    char c = bitmaskToAmbiguity(
+                 ambiguityToBitmask(ca) & ambiguityToBitmask(cb));
+    return islower(ca) && islower(cb) ? tolower(c) : c;
 }
 
 /** Return the bitwise-or of the specified ambiguity codes. */
 static inline char ambiguityOr(char ca, char cb)
 {
-	char c = bitmaskToAmbiguity(
-			ambiguityToBitmask(ca) | ambiguityToBitmask(cb));
-	return islower(ca) || islower(cb) ? tolower(c) : c;
+    char c = bitmaskToAmbiguity(
+                 ambiguityToBitmask(ca) | ambiguityToBitmask(cb));
+    return islower(ca) || islower(cb) ? tolower(c) : c;
 }
 
 /** Return whether one ambiguity code is a subset of the other.
  */
 static inline bool ambiguityIsSubset(char a, char b)
 {
-	char intersection = ambiguityAnd(a, b);
-	return intersection == a || intersection == b;
+    char intersection = ambiguityAnd(a, b);
+    return intersection == a || intersection == b;
 }
 
 /**
@@ -105,29 +125,29 @@ static inline bool ambiguityIsSubset(char a, char b)
  * to target in lowercase.
  */
 static inline void overlaySeq(Sequence& overlay, Sequence& target,
-	int shift, bool maskNew = false)
+                              int shift, bool maskNew = false)
 {
-	Sequence::iterator src = overlay.begin();
-	Sequence::iterator dest;
+    Sequence::iterator src = overlay.begin();
+    Sequence::iterator dest;
 
-	if (shift < 0) {
-		target.insert(0, -shift, 'N');
-		dest = target.begin();
-	} else {
-		assert(shift >= 0);
-		if (shift + overlay.length() > target.length()) {
-			unsigned suffixLen = shift + overlay.length() -
-				target.length();
-			target.insert(target.length(), suffixLen, 'N');
-		}
-		dest = target.begin() + shift;
-	}
-	for (; src != overlay.end(); ++src, ++dest) {
-		assert(dest != target.end());
-		if (maskNew && *src != *dest)
-			*src = tolower(*src);
-		*dest = *src;
-	}
+    if (shift < 0) {
+        target.insert(0, -shift, 'N');
+        dest = target.begin();
+    } else {
+        assert(shift >= 0);
+        if (shift + overlay.length() > target.length()) {
+            unsigned suffixLen = shift + overlay.length() -
+                                 target.length();
+            target.insert(target.length(), suffixLen, 'N');
+        }
+        dest = target.begin() + shift;
+    }
+    for (; src != overlay.end(); ++src, ++dest) {
+        assert(dest != target.end());
+        if (maskNew && *src != *dest)
+            *src = tolower(*src);
+        *dest = *src;
+    }
 }
 
 #endif

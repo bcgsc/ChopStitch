@@ -9,8 +9,9 @@
 #include <cassert>
 #include <cmath>
 
+#include "nthist.hpp"
 #include "BloomFilter.hpp"
-//#include "RollingHashIterator.h"
+#include "ntHashIterator.hpp"
 
 #include "Uncompress.h"
 
@@ -22,8 +23,8 @@
 
 static const char VERSION_MESSAGE[] =
     PROGRAM " Version 1.0.0 \n"
-    "Written by Hamid Mohamadi.\n"
-    "Copyright 2016 Canada's Michael Smith Genome Science Centre\n";
+    "Written by Hamid Mohamadi and Hamza Khan.\n"
+    "Copyright 2017 Canada's Michael Smith Genome Science Centre\n";
 
 static const char USAGE_MESSAGE[] =
     "Usage: " PROGRAM " [OPTION]... FILES...\n"
@@ -34,7 +35,6 @@ static const char USAGE_MESSAGE[] =
     "\n"
     "  -t, --threads=N	use N parallel threads [1]\n"
     "  -k, --kmer=N	the length of kmer [64]\n"
-    "  -c, --canonical	get the estimate for cannonical form\n"
     "      --help	display this help and exit\n"
     "      --version	output version information and exit\n"
     "\n"
@@ -44,142 +44,149 @@ using namespace std;
 
 namespace opt {
 unsigned nThrd=1;
-unsigned ibits=8;
-unsigned nhash=3;
+unsigned nhash1;
+unsigned nhash2;
 unsigned kmLen=50;
-size_t dbSize=22000000000;
-size_t sbSize=4000000000;
-double fpr=0.01;
+size_t m1;
+size_t m2;
+double fpr1=0.01;
+double fpr2=0.01;
+bool ref=false;
+size_t dbfSize=0;
+size_t sbfSize=0;
 }
 
-static const char shortopts[] = "t:k:b:h:d:s:r:c";
+static const char shortopts[] = "t:k:d:s:H:h:r:c";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
 static const struct option longopts[] = {
     { "threads",	required_argument, NULL, 't' },
     { "kmer",	required_argument, NULL, 'k' },
-    { "ibit",	required_argument, NULL, 'b' },
-    { "hash",	required_argument, NULL, 'h' },
-    { "dsize",	required_argument, NULL, 'd' },
-    { "ssize",	required_argument, NULL, 's' },
-    { "fpr",	required_argument, NULL, 'r' },  
+    { "hash1",	required_argument, NULL, 'H' },
+    { "hash2",	required_argument, NULL, 'h' },
+    { "fpr1",	required_argument, NULL, 'd' },
+    { "fpr2",	required_argument, NULL, 's' },
+    { "ref",	no_argument, NULL, 'r' },
     { "help",	no_argument, NULL, OPT_HELP },
     { "version",	no_argument, NULL, OPT_VERSION },
     { NULL, 0, NULL, 0 }
 };
 
-unsigned getftype(std::ifstream &in) {
-    std::string hseq;
-    getline(in,hseq);
-    if(hseq[0]=='>') {
-        return 1;
-    }
-    if(hseq[0]=='@') {
-        return 0;
-    }
-    return 2;
-}
-
-inline void seqLoad(BloomFilter &dbFilter, BloomFilter &sbFilter, const string &seq) {
-    if (seq.size() < opt::kmLen) return;
-    uint64_t hVal, fhVal=0, rhVal=0;
-    for(unsigned seqIndex=0; seqIndex<seq.length()-opt::kmLen+1;) {
-        bool rollFlag=(seqIndex==0)?false:true;
-        if(seedTab[seq[seqIndex+opt::kmLen-1]]==seedN) {
-            seqIndex+=opt::kmLen;
-            rollFlag=false;
-        }
-        if(!rollFlag) {
-            bool hGood=false;
-            while(!hGood && seqIndex<seq.length()-opt::kmLen+1) {
-                string kmer = seq.substr(seqIndex, opt::kmLen);
-                unsigned locN=0;
-                hGood = NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal, hVal, locN);
-                seqIndex+=locN+1;
-            }
-            if(hGood) {
-				if(!dbFilter.insert_make_change(hVal))sbFilter.insert(hVal);
-            }
-        }
-        else {
-            hVal=NTPC64(fhVal, rhVal, seq[seqIndex-1], seq[seqIndex-1+opt::kmLen], opt::kmLen);
-            seqIndex++;            		
-			if(!dbFilter.insert_make_change(hVal))sbFilter.insert(hVal);
-        }
-    }
-}
-
-void loadBFfq(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
-    bool good = true;
-
-    //good = getline(in, seq);
-    //good = getline(in, hseq);
-    //good = getline(in, hseq);
-    //if(good) seqLoad(dbFilter, sbFilter, seq);
-    
-    
-        
-    #pragma omp parallel
-    for(string seq, hseq; good;) {
-        #pragma omp critical(in)
-        {
-            good = getline(in, hseq);
-            good = getline(in, seq);
-            good = getline(in, hseq);
-            good = getline(in, hseq);
-        }
-        if(good) {
-			 seqLoad(dbFilter, sbFilter, seq);
-			/*RollingHashIterator itr(seq, opt::nhash, opt::kmLen);			
-			while (itr != itr.end()) {
-			//	if(!dbFilter.contains(*itr))
-					dbFilter.insert(*itr);
-				//else
-					//sbFilter.insert(*itr);
-				itr++;
-			}*/
-		 }
-    }
-}
-
-
-bool getSeq(std::ifstream &uFile, std::string &line) {
+bool getFAseq(std::ifstream &uFile, std::string &line) {
     bool good=false;
     std::string hline;
     line.clear();
     do {
-            good=getline(uFile, hline);
-            if(hline[0]=='>'&&!line.empty()) break;// !line.empty() for the first rec
-            if(hline[0]!='>')line+=hline;
-        } while(good);
-    
+        good=static_cast<bool>(getline(uFile, hline));
+        if(hline[0]=='>'&&!line.empty())
+            break;
+        if(hline[0]!='>')
+            line+=hline;
+    } while(good);
     if(!good&&!line.empty())
-            good=true;
-
+        good=true;
     return good;
 }
 
-/*void loadBFfa(BloomFilter &dbFilter, BloomFilter &sbFilter, std::ifstream &in) {
+void loadBFfa(std::ifstream &in, BloomFilter &dbFilter) {
     bool good = true;
     #pragma omp parallel
     for(string seq, hseq; good;) {
         #pragma omp critical(in)
-        good = getSeq(in,seq);
-        //if(good) seqLoad(dbFilter, sbFilter, seq);
+        good = getFAseq(in,seq);
         if(good) {
-			 //seqLoad(dbFilter, sbFilter, seq);
-			RollingHashIterator itr(seq, opt::nhash, opt::kmLen);			
-			while (itr != itr.end()) {
-				if(!dbFilter.contains(*itr))
-					dbFilter.insert(*itr);
-				else
-					sbFilter.insert(*itr);
-				itr++;
-			}
-		 }
+            ntHashIterator itr(seq, opt::nhash1, opt::kmLen);
+            while (itr != itr.end()) {
+                dbFilter.insert(*itr);
+                ++itr;
+            }
+        }
     }
-}*/
+}
+
+void genBFref(const vector<string> &inFiles) {
+    cerr << "k-mer length: " << opt::kmLen << "\n";
+    cerr << "Number of distinct k-mers: " << opt::dbfSize << "\n";
+    cerr << "Number of k-mers with freq>1: " << opt::sbfSize << "\n";
+    cerr << "BF fpr: " << opt::fpr1 << "\n";
+    cerr << "BF bits: " << opt::m1 << "\t bits/kmer= " << opt::m1/opt::dbfSize << "\n";
+    cerr << "BF hashes: " << opt::nhash1 << "\n";
+
+    BloomFilter dbFilter(opt::m1, opt::nhash1, opt::kmLen);
+    for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
+        std::ifstream in(inFiles[file_i].c_str());
+        loadBFfa(in, dbFilter);
+        in.close();
+    }
+    dbFilter.storeFilter("Bfilter.bf");
+
+    ofstream bfinfo("Bfilter.inf");
+    bfinfo << opt::m1 << "\n" << opt::nhash1 << "\n" <<opt::kmLen;
+    bfinfo.close();
+
+    cerr << "BF actual fpr: " << setprecision(4) << fixed << pow(1.0*dbFilter.getPop()/opt::m1,opt::nhash1) << "\n";
+    cerr << "Popcnt of bf: " << dbFilter.getPop() << "\n";
+}
+
+
+bool getFQseq(std::ifstream &uFile, std::string &line) {
+    bool good=false;
+    std::string hline;
+    good=static_cast<bool>(getline(uFile, hline));
+    good=static_cast<bool>(getline(uFile, line));
+    good=static_cast<bool>(getline(uFile, hline));
+    good=static_cast<bool>(getline(uFile, hline));
+    return good;
+}
+
+void loadBFfq(std::ifstream &in, BloomFilter &dbFilter, BloomFilter &sbFilter) {
+    bool good = true;
+    unsigned maxHash= std::max(opt::nhash1,opt::nhash2);
+    #pragma omp parallel
+    for(string seq, hseq; good;) {
+        #pragma omp critical(in)
+        good = getFAseq(in,seq);
+        if(good) {
+            ntHashIterator itr(seq, maxHash, opt::kmLen);
+            while (itr != itr.end()) {
+                if(!dbFilter.insert_make_change(*itr))
+                    sbFilter.insert(*itr);
+                ++itr;
+            }
+        }
+    }
+}
+
+void genBFseq(const vector<string> &inFiles) {
+    cerr << "k-mer length: " << opt::kmLen << "\n";
+    cerr << "Number of distinct k-mers: " << opt::dbfSize << "\n";
+    cerr << "Number of k-mers with freq>1: " << opt::sbfSize << "\n";
+    cerr << "Primary BF fpr: " << opt::fpr1 << "\n";
+    cerr << "Secondary BF fpr: " << opt::fpr2 << "\n";
+    cerr << "Primary BF bits: " << opt::m1 << "\t bits/kmer= " << opt::m1/opt::dbfSize << "\n";
+    cerr << "Secondary BF bits: " << opt::m2 << "\t bits/kmer= " << opt::m2/opt::sbfSize << "\n";
+    cerr << "Primary BF hashes: " << opt::nhash1 << "\n";
+    cerr << "Secondary BF hashes: " << opt::nhash2 << "\n";
+
+    BloomFilter dbFilter(opt::m1, opt::nhash1, opt::kmLen);
+    BloomFilter sbFilter(opt::m2, opt::nhash2, opt::kmLen);
+    for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
+        std::ifstream in(inFiles[file_i].c_str());
+        loadBFfq(in, dbFilter, sbFilter);
+        in.close();
+    }
+    sbFilter.storeFilter("Bfilter.bf");
+
+    ofstream bfinfo("Bfilter.inf");
+    bfinfo << opt::m1 << "\n" << opt::nhash1 << "\n" <<opt::kmLen << "\n";
+    bfinfo << opt::m2 << "\n" << opt::nhash2 << "\n" <<opt::kmLen;
+    bfinfo.close();
+
+    cerr << "Primary BF actual fpr: " << setprecision(4) << fixed << pow(1.0*dbFilter.getPop()/opt::m1,opt::nhash1) << "\n";
+    cerr << "Secondary BF actual fpr: " << setprecision(4) << fixed << pow(1.0*sbFilter.getPop()/opt::m2,opt::nhash2) << "\n";
+    cerr << "Popcnt of pbf and sbf: " << dbFilter.getPop() << "\t" << sbFilter.getPop() << "\n";
+}
 
 int main(int argc, char** argv) {
     double sTime = omp_get_wtime();
@@ -197,20 +204,20 @@ int main(int argc, char** argv) {
         case 'k':
             arg >> opt::kmLen;
             break;
-        case 'b':
-            arg >> opt::ibits;
+        case 'H':
+            arg >> opt::nhash1;
             break;
         case 'h':
-            arg >> opt::nhash;
+            arg >> opt::nhash2;
             break;
         case 'd':
-            arg >> opt::dbSize;
+            arg >> opt::fpr1;
             break;
         case 's':
-            arg >> opt::sbSize;
+            arg >> opt::fpr2;
             break;
         case 'r':
-            arg >> opt::fpr;
+            opt::ref=true;
             break;
         case OPT_HELP:
             std::cerr << USAGE_MESSAGE;
@@ -250,35 +257,23 @@ int main(int argc, char** argv) {
     omp_set_num_threads(opt::nThrd);
 #endif
 
+    getHist(opt::dbfSize, opt::sbfSize, opt::kmLen, opt::nThrd, inFiles);
 
-    //size_t dbfSize=6000000000,sbfSize=4000000000; // Human_smallerBF
-    //size_t dbfSize=11000000000,sbfSize=4000000000; // Human_smallerBF
-    //size_t dbfSize=22000000000,sbfSize=4000000000; // Human
-    //size_t dbfSize=300000000,sbfSize=200000000; // C. elegans
-    
-    
-    
-    
-    BloomFilter dbFilter(opt::dbSize*opt::ibits, opt::nhash, opt::kmLen);
-    BloomFilter sbFilter(opt::sbSize*opt::ibits, opt::nhash, opt::kmLen);
-    
-    for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
-        std::ifstream in(inFiles[file_i].c_str());
-		loadBFfq(dbFilter, sbFilter, in);		
-		in.close();
-	}
-	
-	
-    cerr << "Load time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
-    
-	sbFilter.storeFilter("sfilter.bf");
+    opt::m1 = -1*log(opt::fpr1)/log(2)/log(2)*opt::dbfSize;
+    opt::m2 = -1*log(opt::fpr2)/log(2)/log(2)*opt::sbfSize;
 
-	cout << "h= " << opt::nhash << "\n";
-	cout << "k= " << opt::kmLen << "\n";
-	cout << "b= " << opt::ibits << "\n";
-	cout << "FPR= " << setprecision(4) << fixed << pow(1.0*sbFilter.getPop()/opt::sbSize/opt::ibits,opt::nhash) << "\n";
-	cout << "popcnt of dbFilter and sbFilter: " << dbFilter.getPop() << "\t" << sbFilter.getPop() << "\n";
-	
+    opt::nhash1 = opt::m1/opt::dbfSize*log(2);
+    opt::nhash2 = opt::m2/opt::sbfSize*log(2);
+    if(opt::nhash1==0)
+        opt::nhash1 = 1;
+    if(opt::nhash2==0)
+        opt::nhash2 = 1;
+
+    if(opt::ref)
+        genBFref(inFiles);
+    else
+        genBFseq(inFiles);
+
     cerr << "time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
     return 0;
 }
