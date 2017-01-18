@@ -28,17 +28,20 @@ static const char VERSION_MESSAGE[] =
 
 static const char USAGE_MESSAGE[] =
     "Usage: " PROGRAM " [OPTION]... FILES...\n"
-    "Estimates the number of k-mers in FILES(>=1).\n"
+    "Creates a Bloom filter (BF) to find exon-exon junctions.\n"
     "Accepatble file formats: fastq, fasta, sam, bam, gz, bz, zip.\n"
     "\n"
     " Options:\n"
     "\n"
     "  -t, --threads=N	use N parallel threads [1]\n"
-    "  -k, --kmer=N	the length of kmer [64]\n"
+    "  -k, --kmer=N	the length of kmer [50]\n"
+    "  -d, --fpr1=N	primary BF fpr [0.01]\n"
+    "  -s, --fpr2=N	secondary BF fpr [0.01]\n"
+    "  -r, --ref	using FASTA reference as input instead of FASTQ reads. Don't use fpr2 in this case\n"
     "      --help	display this help and exit\n"
     "      --version	output version information and exit\n"
     "\n"
-    "Report bugs to hmohamadi@bcgsc.ca.\n";
+    "Report bugs to hmohamadi@bcgsc.ca or hkhan@bcgsc.ca \n";
 
 using namespace std;
 
@@ -129,7 +132,6 @@ void genBFref(const vector<string> &inFiles) {
     cerr << "Popcnt of bf: " << dbFilter.getPop() << "\n";
 }
 
-
 bool getFQseq(std::ifstream &uFile, std::string &line) {
     bool good=false;
     std::string hline;
@@ -203,12 +205,6 @@ int main(int argc, char** argv) {
             break;
         case 'k':
             arg >> opt::kmLen;
-            break;
-        case 'H':
-            arg >> opt::nhash1;
-            break;
-        case 'h':
-            arg >> opt::nhash2;
             break;
         case 'd':
             arg >> opt::fpr1;
