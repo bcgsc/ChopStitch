@@ -1,6 +1,0 @@
-Common/FindExons-Options.o: Common/Options.cpp /usr/include/stdc-predef.h \
- Common/Options.h
-
-/usr/include/stdc-predef.h:
-
-Common/Options.h:
