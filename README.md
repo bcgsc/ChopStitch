@@ -1,7 +1,7 @@
 # ChopStitch 1.0.0.
 ####Exon annotation and splice graph reconstruction using transcriptome assembly and whole genome sequencing data
                      
-ChopStitch, a new method for finding putative exons and constructing splice graphs using an assembled transcriptome and whole genome shotgun sequencing (WGSS) data. ChopStitch identifies exon-exon boundaries in *de novo* assembled RNA-seq data with the help of a Bloom filter that represents the *k*-mer spectrum of WGSS reads. The algorithm also detects base substitutions in transcript sequences corresponding to sequencing or assembly errors, haplotype variations, or putative RNA editing events. The primary output of our tool is a FASTA file containing putative exons. Further, exon edges are interrogated for alternative exon-exon boundaries to detect transcript isoforms, which are reported as splice graphs in dot output format.
+ChopStitch is a new method for finding putative exons and constructing splice graphs using an assembled transcriptome and whole genome shotgun sequencing (WGSS) data. ChopStitch identifies exon-exon boundaries in *de novo* assembled RNA-seq data with the help of a Bloom filter that represents the *k*-mer spectrum of WGSS reads. The algorithm also detects base substitutions in transcript sequences corresponding to sequencing or assembly errors, haplotype variations, or putative RNA editing events. The primary output of our tool is a FASTA file containing putative exons. Further, exon edges are interrogated for alternative exon-exon boundaries to detect transcript isoforms, which are reported as splice graphs in dot output format.
 
 ###Requirements:
 Install [pip](https://pip.pypa.io/en/latest/installing/) 
@@ -14,12 +14,49 @@ Install [Graphviz version 2.4.0](http://www.graphviz.org/Download..php) command 
               
               
 ###Install ChopStitch:
+When installing ChopStitch from GitHub source the following tools are required:
+
+* [Autoconf](http://www.gnu.org/software/autoconf)
+* [Automake](http://www.gnu.org/software/automake)
+
+To generate the configure script and make files:
+
+	./autogen.sh
+
+To compile and install ChopStitch in /usr/local:
+
 ```
 ./configure
 make
 make install
 ```
-            
+To install ChopStitch in a specified directory:
+
+```
+$ ./configure --prefix=/opt/ChopStitch
+$ make 
+$ make install 
+```
+
+ChopStitch uses OpenMP for parallelization, which requires a modern compiler such as GCC 4.2 or greater. If you have an older compiler, it is best to upgrade your compiler if possible. If you have multiple versions of GCC installed, you can specify a different compiler:
+
+```
+$ ./configure CC=gcc-xx CXX=g++-xx 
+```
+
+For the best performance of ChopStitch, pass `-O3` flag:  
+
+```
+$ ./configure CFLAGS='-g -O3' CXXFLAGS='-g -O3' 
+```
+
+To run ChopStitch, its executables, `CreateBloom` and `FindExons`, should be found in your PATH. If you installed ChopStitch in /opt/ChopStitch, add /opt/ChopStitch/bin to your PATH:
+
+```
+$ PATH=/opt/ChopStitch/bin:$PATH
+```
+
+
 ###Run CreateBloom
 
 ```
