@@ -21,14 +21,16 @@ When installing ChopStitch from GitHub source the following tools are required:
 
 To generate the configure script and make files:
 
-	./autogen.sh
+```
+./autogen.sh
+```
 
 To compile and install ChopStitch in /usr/local:
 
 ```
-./configure
-make
-make install
+$ ./configure
+$ make
+$ sudo make install
 ```
 To install ChopStitch in a specified directory:
 

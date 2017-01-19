@@ -125,7 +125,7 @@ void genBFref(const vector<string> &inFiles) {
     dbFilter.storeFilter("Bfilter.bf");
 
     ofstream bfinfo("Bfilter.inf");
-    bfinfo << opt::m1 << "\n" << opt::nhash1 << "\n" <<opt::kmLen;
+    bfinfo << opt::m1 << "\n" << opt::nhash1 << "\n" <<opt::kmLen << "\n" << pow(1.0*dbFilter.getPop()/opt::m1,opt::nhash1);
     bfinfo.close();
 
     cerr << "BF actual fpr: " << setprecision(4) << fixed << pow(1.0*dbFilter.getPop()/opt::m1,opt::nhash1) << "\n";
@@ -181,8 +181,8 @@ void genBFseq(const vector<string> &inFiles) {
     sbFilter.storeFilter("Bfilter.bf");
 
     ofstream bfinfo("Bfilter.inf");
-    bfinfo << opt::m1 << "\n" << opt::nhash1 << "\n" <<opt::kmLen << "\n";
-    bfinfo << opt::m2 << "\n" << opt::nhash2 << "\n" <<opt::kmLen;
+    bfinfo << opt::m1 << "\n" << opt::nhash1 << "\n" <<opt::kmLen << "\n" << pow(1.0*dbFilter.getPop()/opt::m1,opt::nhash1) << "\n";
+    bfinfo << opt::m2 << "\n" << opt::nhash2 << "\n" <<opt::kmLen << "\n" << pow(1.0*sbFilter.getPop()/opt::m2,opt::nhash2);
     bfinfo.close();
 
     cerr << "Primary BF actual fpr: " << setprecision(4) << fixed << pow(1.0*dbFilter.getPop()/opt::m1,opt::nhash1) << "\n";
