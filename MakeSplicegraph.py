@@ -361,25 +361,29 @@ def write_dot(directed_graph, node_names_dict, outputfile):
 
 def main(argv):
    if(len(argv)==0):
-        print '\nERROR!:No input provided\n\nUsage: python MakeSplicegraph.py -i <inputfile> -o <Splicegraph-outputfile>'
+        print ('\nERROR!:No input provided\n\nUsage: python MakeSplicegraph.py -i <inputfile> -o <Splicegraph-outputfile>')
         sys.exit(2)
    inputfile = ''
    outputfile = 'splicegraph'
    try:
       opts, args = getopt.getopt(argv,"hi:o:",["ifile=","ofile="])
    except getopt.GetoptError:
-      print __doc__,"\n",epi,'Usage: python MakeSplicegraph.py -i <inputfile> -o <Splicegraph-outputfile>'
+      print(__doc__)
+      print(epi)
+      print ("Usage: python MakeSplicegraph.py -i <inputfile> -o <Splicegraph-outputfile>")
       sys.exit(2)
    for opt, arg in opts:
       if opt == '-h':
-         print __doc__,"\n",epi,'Usage: python MakeSplicegraph.py -i <inputfile> -o <Splicegraph-outputfile>'
+         print(__doc__)
+         print(epi)
+         print ("Usage: python MakeSplicegraph.py -i <inputfile> -o <Splicegraph-outputfile>")
          sys.exit()
       elif opt in ("-i", "--ifile"):
          inputfile = arg
       elif opt in ("-o", "--ofile"):
          outputfile = arg
-   print 'Input file is: ', inputfile
-   print 'Splicegraph-output file is: ', outputfile
+   print ('Input file is: ', inputfile)
+   print ('Splicegraph-output file is: ', outputfile)
    data_lists(inputfile, outputfile)
    nodes_list_left = kmer_dict_to_list(kmer_dict)
    nodes_list_right = kmer_dict_to_list(kmer_dict_rt)
@@ -393,7 +397,7 @@ def main(argv):
    node_names_dict = new_node_names(directed_graph, cc)
    write_dot(directed_graph, node_names_dict, outputfile)
    tf = datetime.datetime.now()
-   print "\n Time required - ",tf-ts
+   print ("\n Time required - ",tf-ts)
 
    #pprint(first_last_exon_dict)
 
