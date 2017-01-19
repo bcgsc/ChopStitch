@@ -5,7 +5,7 @@ Create a Splice graph from confident_exons.fa
 
 import argparse, datetime
 import sys, getopt
-from pprint import pprint
+#from pprint import pprint
 import networkx 
 from networkx.algorithms.components.connected import connected_components
 
@@ -13,8 +13,8 @@ from networkx.algorithms.components.connected import connected_components
 ts = datetime.datetime.now()
 
 __title__ = 'MakeSplicegraph:Splice graph Construction'
-__version__ = '0'
-__description__ = "A tool to easily create a splice graph from confident-exons.fa"
+__version__ = '1.0.0'
+__description__ = "A tool to easily create a splice graph from the output of FindExons(confident-exons.fa)"
 __author__ = 'Hamza Khan'
 __license__ = 'GPL license'
 __author_email__ = "hkhan@bcgsc.ca"
@@ -361,25 +361,25 @@ def write_dot(directed_graph, node_names_dict, outputfile):
 
 def main(argv):
    if(len(argv)==0):
-        print '\nERROR!:No input provided\n\nUsage: python splicegraph.py -i <inputfile> -o <outputfile>'
+        print '\nERROR!:No input provided\n\nUsage: python MakeSplicegraph.py -i <inputfile> -o <Splicegraph-outputfile>'
         sys.exit(2)
    inputfile = ''
    outputfile = 'splicegraph'
    try:
       opts, args = getopt.getopt(argv,"hi:o:",["ifile=","ofile="])
    except getopt.GetoptError:
-      print __doc__,"\n",epi,'Usage: python splicegraph.py -i <inputfile> -o <outputfile>'
+      print __doc__,"\n",epi,'Usage: python MakeSplicegraph.py -i <inputfile> -o <Splicegraph-outputfile>'
       sys.exit(2)
    for opt, arg in opts:
       if opt == '-h':
-         print __doc__,"\n",epi,'Usage: python splicegraph.py -i <inputfile> -o <outputfile>'
+         print __doc__,"\n",epi,'Usage: python MakeSplicegraph.py -i <inputfile> -o <Splicegraph-outputfile>'
          sys.exit()
       elif opt in ("-i", "--ifile"):
          inputfile = arg
       elif opt in ("-o", "--ofile"):
          outputfile = arg
-   print 'Input file is "', inputfile
-   print 'Output file is "', outputfile
+   print 'Input file is: ', inputfile
+   print 'Splicegraph-output file is: ', outputfile
    data_lists(inputfile, outputfile)
    nodes_list_left = kmer_dict_to_list(kmer_dict)
    nodes_list_right = kmer_dict_to_list(kmer_dict_rt)
