@@ -4,6 +4,7 @@ ChopStitch, a new method for finding putative exons and constructing splice grap
 
 ###Requirements:
 Install [pip](https://pip.pypa.io/en/latest/installing/) 
+         
 Install requirements by running:
 ```
 pip install -r requirements.txt
@@ -12,7 +13,7 @@ Install [Graphviz version 2.4.0](http://www.graphviz.org/Download..php) command 
               
               
 ###Install ChopStitch:
-``
+```
 ./configure
 make
 make install
