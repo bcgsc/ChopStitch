@@ -47,29 +47,33 @@ OR
 ```
                
 Output:
+            
 Bfilter.bf : Bloom filter file
+             
 Bfilter.inf : Info file required for FindExons 
         
              
 ###Run FindExons
 Find putative exons in TransAbySS Transcriptome assembly file
 Accepatble file formats: FASTA
-
+```
   Options:
     -i, --input-bloom=FILE  load bloom filter from FILE
     -l, --leniency=N        Calculated as ceil(FPR*k*leniency factor) [10]
         --help	            display help and exit
         --version           output version information and exit
-
+````
+           
 Example:
 ```
 ./FindExons -i Bfilter.bf <Transcriptome assembly file (TransABySS FASTA file)>
 ```
 Output:
 A FASTA file of exons with headers in this format - 
+```
 >TranscriptName_startCoordinate_Endcoordinate
-         
-            
+```         
+              
 ###Run MakeSplicegraph.py with the putative exons FASTA file outputted by FindExons(confident-exons.fa)
     
 Example:
