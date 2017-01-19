@@ -242,7 +242,7 @@ SNP_found:
                     if(end-start > ((opt::k)+min_exon))
                     {
                         int minus_counter = 0, snp_chance_A=0, snp_chance_C=0, snp_chance_G=0, snp_chance_T=0, snp_nochance=0;
-                        for(int a_minus=(x-1); a_minus>=(x-opt::leniency); a_minus-- )
+                        for(int a_minus=(x-1); a_minus>=((int)(x-opt::leniency)); a_minus-- )
                         {
 
                             string it_rev = current_sec.substr (a_minus,(opt::k));
