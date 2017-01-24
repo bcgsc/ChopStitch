@@ -132,23 +132,19 @@ void genBFref(const vector<string> &inFiles) {
     cerr << "Popcnt of bf: " << dbFilter.getPop() << "\n";
 }
 
-bool getFQseq(std::ifstream &uFile, std::string &line) {
-    bool good=false;
-    std::string hline;
-    good=static_cast<bool>(getline(uFile, hline));
-    good=static_cast<bool>(getline(uFile, line));
-    good=static_cast<bool>(getline(uFile, hline));
-    good=static_cast<bool>(getline(uFile, hline));
-    return good;
-}
-
 void loadBFfq(std::ifstream &in, BloomFilter &dbFilter, BloomFilter &sbFilter) {
     bool good = true;
     unsigned maxHash= std::max(opt::nhash1,opt::nhash2);
+
     #pragma omp parallel
     for(string seq, hseq; good;) {
         #pragma omp critical(in)
-        good = getFAseq(in,seq);
+        {
+            good =static_cast<bool>(getline(in, hseq));
+            good = static_cast<bool>(getline(in, seq));
+            good = static_cast<bool>(getline(in, hseq));
+            good = static_cast<bool>(getline(in, hseq));
+        }
         if(good) {
             ntHashIterator itr(seq, maxHash, opt::kmLen);
             while (itr != itr.end()) {
@@ -157,7 +153,9 @@ void loadBFfq(std::ifstream &in, BloomFilter &dbFilter, BloomFilter &sbFilter) {
                 ++itr;
             }
         }
+
     }
+
 }
 
 void genBFseq(const vector<string> &inFiles) {
