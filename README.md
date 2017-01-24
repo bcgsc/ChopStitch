@@ -98,10 +98,12 @@ Find putative exons in TransAbySS Transcriptome assembly file
 Acceptable file formats: FASTA
 ```
   Options:
-    -i, --input-bloom=FILE  load bloom filter from FILE
-    -l, --leniency=N        Calculated as ceil(FPR*k*leniency factor) [10]
-        --help	            display help and exit
-        --version           output version information and exit
+   -i, --input-bloom=FILE     load bloom filter from FILE
+   -l, --leniency=N           leniency for exon-exon juction detection [10]
+   -f, --lfactor=N            leniency calculated as ceil(FPR*lfactor*k) 
+       --help	                display this help and exit
+       --version	            output version information and exit
+
 ````
            
 Example:
