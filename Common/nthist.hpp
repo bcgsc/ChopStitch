@@ -184,11 +184,6 @@ bool getHist(size_t &dbsize, size_t &sbsize, const unsigned klen, const unsigned
     }
     double F0= (opt::rBits*log(2)-log(x[0])) * 1.0* ((size_t)1<<(opt::sBits+opt::rBits));
 
-    //std::cout << "F0: " << (long long)F0 << "\t" << opt::rBuck-x[0]  << "\n";
-    //for(size_t i=1; i<2; i++) {
-    //    std::cout << i << ": " << (long long)(f[i]*F0) << "\n";
-    //}
-
     dbsize = (long long)F0;
     sbsize = dbsize - (long long)(f[1]*F0);
 
