@@ -36,7 +36,10 @@ static const char USAGE_MESSAGE[] =
     "\n"
     "  -i, --input-bloom=FILE     load bloom filter from FILE\n"
     "  -l, --leniency=N           leniency for exon-exon juction detection [10]\n"
-    "  -f, --lfactor=N           leniency calculated as ceil(FPR*lfactor*k) \n"
+    "  -f, --lfactor=N            leniency calculated as ceil(FPR*lfactor*k) \n"
+    "  -s, --lsplicesignals=csv   Comma separated 5' splicesignals \n"
+    "  -r, --rsplicesignals=csv   Comma separated 3' splicesignals \n"
+    "      --allexons             Also output exons on either ends of contigs\n"
     "      --help	              display this help and exit\n"
     "      --version	          output version information and exit\n"
     "\n"
@@ -45,6 +48,8 @@ static const char USAGE_MESSAGE[] =
 using namespace std;
 
 namespace opt {
+string lsplicesignals="";
+string rsplicesignals="";
 unsigned leniency=10;
 unsigned lfactor=0;
 unsigned k=50;
@@ -56,7 +61,7 @@ int allExons=0;
 double FPR=0.0;
 }
 
-static const char shortopts[] = "k:l:i:h:f:v:";
+static const char shortopts[] = "k:l:i:h:f:s:r:a:v:";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
@@ -65,6 +70,8 @@ static const struct option longopts[] = {
     { "input-bloom",	required_argument, NULL, 'i' },
     { "lfactor",	required_argument, NULL, 'f' },
     { "allexons",	no_argument, &opt::allExons, 1},
+    { "lsplicesignals",	required_argument, NULL, 's' },
+    { "rsplicesignals",	required_argument, NULL, 'r' },
     { "help",	no_argument, NULL, OPT_HELP },
     { "version",	no_argument, NULL, OPT_VERSION },
     { NULL, 0, NULL, 0 }
@@ -355,6 +362,165 @@ SNP_found:
     efile.close();
 }
 
+string check_modified_kmer(string it, BloomFilter& bf, unsigned int &increments){
+  string it_a = "A"+it;
+  string it_t = "T"+it;
+  string it_g = "G"+it;
+  string it_c = "C"+it;
+  if(bf.contains(it_a.c_str())){
+    increments+=1;
+    return it_a;
+  }
+  if(bf.contains(it_g.c_str())){
+     increments+=1;
+     return it_g;
+  }
+  if(bf.contains(it_t.c_str())){
+    increments+=1;
+    return it_t;
+  }
+
+  if(bf.contains(it_c.c_str())){
+    increments+=1;
+    return it_c;
+  }
+  else
+    return it;
+}
+
+
+string check_modified_kmer_last(string it, BloomFilter& bf, unsigned int &increments){
+  string it_a = it+"A";
+  string it_t = it+"T";
+  string it_g = it+"G";
+  string it_c = it+"C";
+  if(bf.contains(it_a.c_str())){
+    increments+=1;
+    return it_a;
+  }
+  if(bf.contains(it_g.c_str())){
+     increments+=1;
+     return it_g;
+  }
+  if(bf.contains(it_t.c_str())){
+    increments+=1;
+    return it_t;
+  }
+
+  if(bf.contains(it_c.c_str())){
+    increments+=1;
+    return it_c;
+  }
+  else
+    return it;
+}
+
+
+string PostProcess_end(BloomFilter& bloom, string& current_sec, vector<string> rss) {
+     BloomFilter& bf = bloom;
+     string last_kmer = current_sec.substr(current_sec.length()-(opt::k),(opt::k));
+     //cout << "last_kmer = " << last_kmer << endl;
+     unsigned int increments = 0;
+     for (unsigned int x=0; x<6; x++) {
+         last_kmer = check_modified_kmer_last(last_kmer, bf, increments);
+         last_kmer = last_kmer.substr((last_kmer.length()-(opt::k)),(opt::k));
+         //cout << "last_kmer-after = " << last_kmer << endl;
+         //std::cout << "increments = " << increments << std::endl;
+   }
+     if(increments>1) {
+       for (unsigned int y=0; y<increments-1; y++){
+         //std::cout << "dimer=" << last_kmer.substr(((opt::k)+y-increments),2) << std::endl;
+         bool testcond = false;
+         string tail_plus_rec, tail;
+         for(unsigned int i = 0; i < rss.size(); ++i){
+           if(last_kmer.substr(((opt::k)+y-increments),2) == rss[i]){
+             //std::cout << "End Dimer present" << std::endl;
+             tail = last_kmer.substr(opt::k-increments, y);
+             tail_plus_rec =current_sec.substr(current_sec.length()-(opt::k),(opt::k))+tail;
+             //std::cout << "tail=" << tail<< "\ntail_plus_rec=" << tail_plus_rec << std::endl;
+             testcond=true;
+             break;
+           }
+         }
+         if(testcond==true){
+           current_sec = current_sec+tail;
+           //std::cout << "current_sec_after_testcond_true = " << current_sec << std::endl;
+           break;
+         }
+       }
+      }
+      return current_sec;
+    }
+
+
+
+void PostProcess_begin(BloomFilter& bloom, vector<string> lss, vector<string> rss ) {
+    FastaReader reader("confident_exons.fa", FastaReader::FOLD_CASE);
+    std::ofstream pfile("processed_exons.fa");
+    BloomFilter& bf = bloom;
+    int count = 0;
+    for (FastaRecord rec; reader >> rec;) {
+        //cout << rec.seq << "\n";
+        std::string current_sec = rec.seq;
+        string processed_seq;
+        if(current_sec.length()<(opt::k)){
+          pfile << ">" << rec.id << "\n" << rec.seq << endl;
+          continue;
+        }
+
+        string first_kmer = current_sec.substr(0,(opt::k));
+        //cout << "First Kmer = " << first_kmer << endl;
+        unsigned int increments = 0;
+        for (unsigned int x=0; x<6; x++) {
+            first_kmer = check_modified_kmer(first_kmer, bf, increments);
+            first_kmer = first_kmer.substr(0,(opt::k));
+            //cout << "Kmer-after = " << first_kmer << endl;
+            //std::cout << "increments" << increments << std::endl;
+      }
+        if(increments>1) {
+          for (unsigned int y=increments; y>1; y--){
+            //std::cout << "dimer=" << first_kmer.substr(y-2,2) << std::endl;
+            bool testcond = false;
+            string head_plus_rec;
+            for(unsigned int i = 0; i < lss.size(); ++i){
+              if(first_kmer.substr(y-2,2) == lss[i]){
+                //std::cout << "Dimer present" << std::endl;
+                count+=1;
+                string head = first_kmer.substr(y,(increments-y));
+                head_plus_rec = head + current_sec.substr(0,(opt::k));
+                //std::cout << "head=" << head << "\nhead_plus_rec=" << head_plus_rec << std::endl;
+                testcond=true;
+                break;
+            }
+          }
+            if(testcond==true){
+                current_sec = head_plus_rec + current_sec.substr((opt::k), (current_sec.length()-(opt::k)));
+                //std::cout << "current_sec_after_testcond_true = " << current_sec << std::endl;
+                break;
+              }
+          }
+      }
+        processed_seq = PostProcess_end(bloom, current_sec, rss);
+        pfile << ">" << rec.id << "\n" << processed_seq << endl;
+      }
+      //std::cout << "Count = " << count << std::endl;
+    }
+
+template<typename Out>
+void split(const std::string &s, char delim, Out result){
+    std::stringstream ss;
+    ss.str(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        *(result++) = item;
+    }
+}
+std::vector<std::string> split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    split(s, delim, std::back_inserter(elems));
+    return elems;
+}
+
 int main(int argc, char** argv) {
 
     bool die = false;
@@ -372,6 +538,15 @@ int main(int argc, char** argv) {
             break;
         case 'i':
             arg >> opt::inputBloomPath;
+            break;
+        case 's':
+            arg >> opt::lsplicesignals;
+            break;
+        case 'r':
+            arg >> opt::rsplicesignals;
+            break;
+        case 'a':
+            opt::allExons=1;
             break;
         case OPT_HELP:
             std::cerr << USAGE_MESSAGE;
@@ -395,6 +570,15 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }
 
+    std::vector<std::string> lss = split(opt::lsplicesignals, ',');
+    std::vector<std::string> rss = split(opt::rsplicesignals, ',');
+    //std::cout << "lsplicesignals = " << std::endl;
+    //for(unsigned int i = 0; i < lss.size(); ++i)
+    //cout << lss[i] << endl;
+
+    //std::cout << "rsplicesignals = " << std::endl;
+    //for(unsigned int i = 0; i < rss.size(); ++i)
+    //cout << rss[i] << endl;
 
     if (!opt::inputBloomPath.empty()) {
 
@@ -424,9 +608,16 @@ int main(int argc, char** argv) {
         findJunctions(bloom, optind, argv);
         if(!opt::allExons)
             remove("exons.fa");
+        
         remove("boundaries.csv");
+   
+        if(opt::lsplicesignals!=""||opt::rsplicesignals!=""){
+             PostProcess_begin(bloom, lss, rss);
+             remove("confident_exons.fa");
+        }
     }
     else
         cerr << "No input file\n";
+
 
 }

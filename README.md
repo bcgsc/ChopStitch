@@ -100,7 +100,10 @@ Acceptable file formats: FASTA
   Options:
    -i, --input-bloom=FILE     load bloom filter from FILE
    -l, --leniency=N           leniency for exon-exon juction detection [10]
-   -f, --lfactor=N            leniency calculated as ceil(FPR*lfactor*k) 
+   -f, --lfactor=N            leniency calculated as ceil(FPR*lfactor*k)
+   -s, --lsplicesignals=csv   Comma separated 5' splicesignals \n"
+   -r, --rsplicesignals=csv   Comma separated 3' splicesignals \n"
+       --allexons             Also output exons on either ends of contigs\n"
        --help	                display this help and exit
        --version	            output version information and exit
 
@@ -109,6 +112,10 @@ Acceptable file formats: FASTA
 Example:
 ```
 ./FindExons -i Bfilter.bf <Transcriptome assembly file (TransABySS FASTA file)>
+   
+./FindExons -i Bfilter.bf -s AG,TG,AC,GC,GG -r GT,TT,AT  <Transcriptome assembly file (TransABySS FASTA file)>
+   
+./FindExons -i Bfilter.bf --allexons <Transcriptome assembly file (TransABySS FASTA file)>
 ```
 Output:
 A FASTA file of exons with headers in this format - 
