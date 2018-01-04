@@ -10,7 +10,7 @@ Install requirements by running:
 ```
 pip install -r requirements.txt
 ```
-Install [Graphviz version 2.4.0](http://www.graphviz.org/Download..php) command line tools
+Install [Graphviz version 2.4.0](http://www.graphviz.org/download/) command line tools
               
               
 ### Install ChopStitch:
