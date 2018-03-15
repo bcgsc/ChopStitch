@@ -29,7 +29,7 @@ static const char VERSION_MESSAGE[] =
 static const char USAGE_MESSAGE[] =
     "Usage: " PROGRAM " [OPTION]... FILES...\n"
     "Creates a Bloom filter (BF) to find exon-exon junctions.\n"
-    "Accepatble file formats: fastq, fasta, sam, bam, gz, bz, zip.\n"
+    "Acceptable file formats: fastq, fasta, sam, bam, gz, bz, zip.\n"
     "\n"
     " Options:\n"
     "\n"

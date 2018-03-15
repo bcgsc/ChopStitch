@@ -75,13 +75,18 @@ Acceptable file formats: fastq, fasta, sam, bam, gz, bz, zip.
   -r, --ref	using FASTA reference as input instead of FASTQ reads. Don't use fpr2 in this case
       --help	display help and exit
       --version	output version information and exit
+  `FILES`: input file or set of files seperated by space, in fasta, fastq, sam, and bam formats. The files can also be in compressed (`.gz`, `.bz2`, `.xz`) formats . A list of files containing file names in each row can be passed with `@` prefix.
 
 ```
 Example:
 ```
 ./CreateBloom -t 32 -k 50 --fpr1 0.01 --fpr2 0.01 <FASTQ1> <FASTQ2>
 ```
-OR
+To pass a list of files, `list.in`, as input:
+```
+./CreateBloom -t 32 -k 50 --fpr1 0.01 --fpr2 0.01 @list.in
+```
+To pass a reference fasta file as input:
 ```
 ./CreateBloom --ref -t 32 -k 50 --fpr1 0.01  <REFERENCE FASTA> 
 ```
