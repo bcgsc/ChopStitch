@@ -1,12 +1,14 @@
 
 '''
 Created by Hamza Khan on 2018-10-17
-A script to find connected components in ChopStitch Splicegraph
+A script to: 
+1) Find connected components in ChopStitch Splicegraph
+2) Create a transcript to gene map tsv file 
 '''
-
 
 import argparse
 import networkx as nx
+from collections import defaultdict
 import csv
 
 class findsubcom:
@@ -29,20 +31,34 @@ class findsubcom:
         return cc_subgraphs
 
                    
-    def writeoutput(self, cc_subgraphs):
+    def writeoutput(self, cc_subgraphs, geneMap):
         '''
         Given a list of subcomponent graphs, 
         write a CSV file with GeneID and ExonID
         '''
-        with open ("splice_subgraphs.csv", 'w') as fh:
+         
+        genemap=defaultdict(set)
+        with open ('splice_subgraphs.csv', 'w') as fh:
             csv_writer = csv.writer(fh, delimiter=',')
-            csv_writer.writerow(['GeneID','ExonID'])
+            csv_writer.writerow(['ExonID','GeneID'])
             gene_count = 0
             for G in cc_subgraphs:
                 gene_count+=1    
                 for node in G.nodes():
-                    csv_writer.writerow([gene_count,node])        
-                
+                    csv_writer.writerow([node, gene_count])                    
+                    for transcript in node.split("_OR_"):        
+                        genemap[gene_count].add(transcript.split("_")[0]) 
+        
+
+        #Check if the user wants the geneMap output as well
+        if(geneMap):
+            with open('geneMap.tsv', 'w') as gm:
+                tsv_writer = csv.writer(gm, delimiter='\t')
+                tsv_writer.writerow(['TranscriptID','GeneID'])   
+                for gene in genemap:
+                    for transcript in genemap[gene]:
+                        tsv_writer.writerow([transcript, gene])    
+
      
     def writedot(self, cc_subgraphs):
         '''
@@ -70,7 +86,10 @@ def parse_args():
                        default = 'None', required=True,
                        help = 'Graph DOT file from MakeSplicegraph.py')
 
-    parser.add_argument('--writesplicesubgraphs', action="store_true", 
+    parser.add_argument('-m', '--geneMap', action="store_true",
+                       default=False, help = 'Write a file with mappings of  transcripts to genes')
+
+    parser.add_argument('-w', '--writesplicesubgraphs', action="store_true", 
                        default=False, help = 'Write splice subgraphs to DOT file')
 
     args = parser.parse_args()
@@ -89,12 +108,13 @@ def main():
     cc_subgraph = obj.findcc()
     
     #Write CSV output
-    obj.writeoutput(cc_subgraph)
+    obj.writeoutput(cc_subgraph, args.geneMap)
  
     #Check flag and generate DOT output
     if(args.writesplicesubgraphs):
         obj.writedot(cc_subgraph)
 
+    
 
 if __name__=='__main__':
     main()
