@@ -106,8 +106,8 @@ Acceptable file formats: FASTA
    -i, --input-bloom=FILE     load bloom filter from FILE
    -l, --leniency=N           leniency for exon-exon juction detection [10]
    -f, --lfactor=N            leniency calculated as ceil(FPR*lfactor*k)
-   -s, --lsplicesignals=csv   Comma separated 5' splicesignals \n"
-   -r, --rsplicesignals=csv   Comma separated 3' splicesignals \n"
+   -s, --lsplicesignals=csv   Comma separated 3' splicesignals \n"
+   -r, --rsplicesignals=csv   Comma separated 5' splicesignals \n"
        --allexons             Also output exons on either ends of contigs\n"
        --help	                display this help and exit
        --version	            output version information and exit
