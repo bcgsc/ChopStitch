@@ -141,4 +141,23 @@ Example:
 ```
 ccomps <Splicegraph DOT file from MakeSplicegraph.py> -o <splicegraph_subgraph>
 ```
+
+### OR Run FindSubcomponents.py -w to generate a DOT file with Splicegraph sub-graphs
+
+The script can also generate a file with mappings of transcripts to genes (denoted by random numbers) with the -m option
+By default, it generates a file with mappings of putative exons to genes (also denoted by random numbers)
+
+```
+Usage: FindSubcomponents.py [-h] -g DOTFILE [-m] [-w]
+
+Find graph subcomponents and write output
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -g DOTFILE, --dotfile DOTFILE
+                        Graph DOT file from MakeSplicegraph.py
+  -m, --geneMap         Write a file with mappings of transcripts to genes
+  -w, --writesplicesubgraphs
+                        Write splice subgraphs to DOT file
+```
          

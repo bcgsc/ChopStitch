@@ -1,9 +1,9 @@
 
 '''
-Created by Hamza Khan on 2018-10-17
 A script to: 
 1) Find connected components in ChopStitch Splicegraph
 2) Create a transcript to gene map tsv file 
+3) Create a putative exon to gene map tsv file
 '''
 
 import argparse
@@ -33,7 +33,7 @@ class findsubcom:
                     line = line.replace(";","").replace("}", "").replace("{","").replace("\"","")
                     line = line.strip().split("->")
 
-                    #Assuming the user only gives the DOT file output from FindExons
+                    #Assuming the user only gives the DOT file output from MakeSplicegraph.py
                     #which has only two nodes per line
                     node1 = line[0]
                     node2 = line[1]
@@ -55,6 +55,7 @@ class findsubcom:
         G_undirected = G.to_undirected()
         cc = nx.connected_components(G_undirected)
         cc_subgraphs = []
+
         for x in cc:
             H = G.subgraph(x)
             cc_subgraphs.append(H)
