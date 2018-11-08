@@ -26,7 +26,6 @@ class findsubcom:
         self.nodes_dict = {}
         self.segment_dict={}
         node_id = 0
-        #G = nx.DiGraph()
         G = nx.MultiDiGraph()
         with open (self.dotfile) as df:
             for line in df:
@@ -34,7 +33,8 @@ class findsubcom:
                     line = line.replace(";","").replace("}", "").replace("{","").replace("\"","")
                     line = line.strip().split("->")
 
-               
+                    #Assuming the user only gives the DOT file output from FindExons
+                    #which has only two nodes per line
                     node1 = line[0]
                     node2 = line[1]
      
@@ -52,42 +52,12 @@ class findsubcom:
 
                     G.add_edge(self.segment_dict[node1], self.segment_dict[node2])
                     
-
-                    '''                  
-                    curr_node = ''
-                    prev_node = ''
-                    for x in range(0,len(line)):
-                        if line[x] not in self.segment_dict:
-                            node_id+=1
-                            self.segment_dict[line[x]]=node_id
-                            self.nodes_dict[node_id]=line[x]
-                            G.add_node(node_id, segments=line[x])
-                            curr_node = node_id
-                        else:
-                            curr_node = self.segment_dict[line[x]]                                
-                            #curr_node = node_id
-                            #self.nodes_dict[node_id] = line[x]
-                            #G.add_node(node_id, segments=line[x])
-                        if (prev_node!=''):
-                            G.add_edge(prev_node, curr_node)
-                        prev_node = node_id
-                                                                         
-                     '''
-        
-        print len(self.nodes_dict)  
-        print len(self.segment_dict)          
-        print "Graph nodes = ", len(list(G.nodes(data=True)))
-        print "Graph edges = ", len(list(G.edges(data=True)))
-                       
- 
-        #G = nx.drawing.nx_agraph.read_dot(self.dotfile)
         G_undirected = G.to_undirected()
         cc = nx.connected_components(G_undirected)
         cc_subgraphs = []
         for x in cc:
             H = G.subgraph(x)
             cc_subgraphs.append(H)
-        print "len(cc_subgraphs) = ", len(cc_subgraphs)
         return cc_subgraphs
 
                    
@@ -104,14 +74,9 @@ class findsubcom:
             gene_count = 0
             for G in cc_subgraphs:
                 gene_count+=1    
-                print "GENE_COUNT = ", gene_count
                 for node in G.nodes():
-                    print "Node=", node, self.nodes_dict[node]
-                    #print "Node=", node
                     csv_writer.writerow([self.nodes_dict[node], gene_count])                    
                     for transcript in self.nodes_dict[node].split("_OR_"):
-                        print "transcript = ", transcript        
-                        #genemap[gene_count].add(transcript.split("_")[0]) 
                         genemap[gene_count].add("_".join(transcript.split("_")[0:-2]))
 
         #Check if the user wants the geneMap output as well
